@@ -64,8 +64,17 @@ function prepare(sql) {
 }
 
 function exec(sql) {
-  db.exec(sql);
-  saveDb();
+  return new Promise((resolve, reject) => {
+    setImmediate(() => {
+      try {
+        db.exec(sql);
+        saveDb();
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
 }
 
 function pragma(sql) {

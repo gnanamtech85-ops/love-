@@ -5,7 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-const { initDb } = require('./db/init');
+const { initDb, isDbReady } = require('./db/init');
 const streamManager = require('./engine/stream-manager');
 const srtlaManager = require('./engine/srtla-manager');
 
@@ -35,23 +35,37 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/streams', streamRoutes);
-app.use('/api/platforms', platformRoutes);
-app.use('/api/srtla', srtlaRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/recordings', recordingRoutes);
-app.use('/api/billing', billingRoutes);
+// Middleware that rejects API requests with 503 while the database is still
+// initializing. /api/health is intentionally excluded so load balancers and
+// health checks always get a fast response.
+function requireDbReady(req, res, next) {
+  if (isDbReady()) return next();
+  res.status(503).json({
+    error: 'Service Unavailable',
+    message: 'Database is initializing, please retry in a moment.',
+    retryAfter: 5
+  });
+}
+
+app.use('/api/auth', requireDbReady, authRoutes);
+app.use('/api/streams', requireDbReady, streamRoutes);
+app.use('/api/platforms', requireDbReady, platformRoutes);
+app.use('/api/srtla', requireDbReady, srtlaRoutes);
+app.use('/api/analytics', requireDbReady, analyticsRoutes);
+app.use('/api/recordings', requireDbReady, recordingRoutes);
+app.use('/api/billing', requireDbReady, billingRoutes);
 
 app.get('/', (req, res) => {
   res.redirect('/dashboard.html');
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
+  const dbReady = isDbReady();
+  res.status(dbReady ? 200 : 503).json({
+    status: dbReady ? 'ok' : 'initializing',
     service: 'StreamCast API',
     version: '1.0.0',
+    dbReady,
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });
@@ -165,16 +179,15 @@ app.use((err, req, res, next) => {
 });
 
 async function start() {
-  try {
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('  StreamCast - Live Streaming Platform v1.0.0');
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('[Init] Initializing database...');
-    await initDb();
-    console.log('[Init] Database initialized successfully.');
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('  StreamCast - Live Streaming Platform v1.0.0');
+  console.log('═══════════════════════════════════════════════════════');
 
-    streamManager.startNms();
+  streamManager.startNms();
 
+  // Start listening immediately so the process is reachable for health checks
+  // and load-balancer probes before the database finishes initializing.
+  await new Promise((resolve) => {
     server.listen(PORT, () => {
       console.log(`[Server] HTTP server listening on port ${PORT}`);
       console.log(`[Server] API available at http://localhost:${PORT}/api`);
@@ -184,11 +197,21 @@ async function start() {
       console.log(`[Socket.IO] SRTLA monitor:  /srtla-monitor`);
       console.log(`[Socket.IO] Live preview:   /live-preview`);
       console.log('═══════════════════════════════════════════════════════');
-      console.log('[Ready] StreamCast is ready to accept connections.');
+      console.log('[Server] Accepting connections. Database initializing in background...');
       console.log('═══════════════════════════════════════════════════════');
+      resolve();
     });
+  });
+
+  // Initialize the database asynchronously after the server is already
+  // listening. API routes are gated by requireDbReady() and return 503 until
+  // this completes. /api/health always responds immediately.
+  console.log('[Init] Initializing database...');
+  try {
+    await initDb();
+    console.log('[Init] Database initialized successfully. All API routes are now active.');
   } catch (err) {
-    console.error('[Fatal] Failed to start server:', err.message);
+    console.error('[Fatal] Database initialization failed:', err.message);
     process.exit(1);
   }
 }
