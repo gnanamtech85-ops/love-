@@ -102,8 +102,75 @@ async function createStream() {
 
 async function startStream(id) {
   try {
+    const data = await api(`/streams/${id}`);
+    const s = data.stream;
+    showIngestInfo(s);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function showIngestInfo(s) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.display = 'flex';
+  overlay.id = 'ingest-info-overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-header">
+        <h2>🎬 Connect OBS to Stream</h2>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="info-box-success" style="margin-bottom:16px;padding:12px;background:rgba(16,185,129,0.08);border-radius:var(--radius-sm);border-left:3px solid var(--accent-green);font-size:0.85rem;">
+          Point your encoder (OBS, vMix, Wirecast) to the RTMP URL below. The stream will auto-detect when you start broadcasting.
+        </div>
+        <div class="form-group">
+          <label class="form-label">RTMP URL</label>
+          <div class="stream-key-box">
+            <span class="key-value" id="ingest-rtmp-url">${s.ingest_url || s.rtmp_url}</span>
+            <button class="key-copy" onclick="copyText('ingest-rtmp-url')">📋</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stream Key</label>
+          <div class="stream-key-box">
+            <span class="key-value" id="ingest-stream-key">${s.stream_key}</span>
+            <button class="key-copy" onclick="copyText('ingest-stream-key')">📋</button>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:8px;">
+          <label class="form-label">HLS Playback URL</label>
+          <div class="stream-key-box">
+            <span class="key-value" id="ingest-hls-url">${window.location.origin}${s.hls_url}</span>
+            <button class="key-copy" onclick="copyText('ingest-hls-url')">📋</button>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:16px;background:rgba(45,104,255,0.06);border-radius:var(--radius-sm);font-size:0.85rem;color:var(--text-secondary);">
+          <strong style="color:var(--text-primary);">How to set up in OBS:</strong><br>
+          1. Open OBS → Settings → Stream<br>
+          2. Service: <strong>Custom...</strong><br>
+          3. Server: paste the <strong>RTMP URL</strong> above<br>
+          4. Stream Key: paste the <strong>Stream Key</strong> above<br>
+          5. Click OK → Start Streaming
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:16px 24px;display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-secondary" onclick="document.getElementById('ingest-info-overlay').remove()">Close</button>
+        <button class="btn btn-primary" onclick="startStreamDirect('${s.id}')">Mark as Live (Manual)</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+async function startStreamDirect(id) {
+  try {
     await api(`/streams/${id}/start`, { method: 'POST' });
-    showToast('Stream is now LIVE');
+    document.getElementById('ingest-info-overlay').remove();
+    showToast('Stream marked as LIVE');
     navigateTo('streams');
   } catch (err) {
     showToast(err.message, 'error');
@@ -149,6 +216,7 @@ async function showStreamDetail(id) {
           <div class="stream-key-box"><span class="key-value" id="detail-rtmp">${s.rtmp_url}</span><button class="key-copy" onclick="copyText('detail-rtmp')">📋</button></div>
           <div style="margin-top:8px;" class="stream-key-box"><span class="key-value" id="detail-srt">${s.srt_url}</span><button class="key-copy" onclick="copyText('detail-srt')">📋</button></div>
           <div style="margin-top:16px;"><strong>Stream Key:</strong> <span class="text-mono" style="color:var(--accent-teal);font-size:0.85rem;" id="detail-key">${s.stream_key}</span> <button class="key-copy" onclick="copyText('detail-key')">📋</button></div>
+          <div style="margin-top:8px;"><strong>HLS URL:</strong> <span class="text-mono" style="font-size:0.85rem;" id="detail-hls">${window.location.origin}${s.hls_url}</span> <button class="key-copy" onclick="copyText('detail-hls')">📋</button></div>
           <div style="margin-top:12px;display:flex;gap:16px;font-size:0.85rem;color:var(--text-secondary);">
             <span>Status: <strong style="color:${s.status === 'live' ? 'var(--accent-green)' : 'var(--text-muted)'}">${s.status}</strong></span>
             <span>Region: <strong>${s.region}</strong></span>

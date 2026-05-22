@@ -19,7 +19,6 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/init');
 const authMiddleware = require('../middleware/auth');
-const streamManager = require('../engine/stream-manager');
 
 const router = express.Router();
 
@@ -39,6 +38,10 @@ router.get('/', (req, res) => {
       WHERE s.user_id = ? 
       ORDER BY s.created_at DESC
     `).all(req.user.id);
+
+    streams.forEach(s => {
+      s.hls_url = `/live/${s.stream_key}/index.m3u8`;
+    });
 
     res.json({ streams });
   } catch (err) {
@@ -63,9 +66,10 @@ router.post('/', (req, res) => {
     const db = getDb();
     const id = uuidv4();
     const streamKey = uuidv4();
-    const rtmpUrl = `rtmp://ingest.streamcast.io/live/${streamKey}`;
-    const srtUrl = `srt://ingest.streamcast.io:9000?streamid=${streamKey}`;
-    const latency = srt_latency || 120;
+    const host = req.headers.host || 'localhost:3000';
+    const rtmpUrl = `rtmp://${host.replace(/:.*$/, '')}:1935/live/${streamKey}`;
+    const srtUrl = `srt://${host.replace(/:.*$/, '')}:9000?streamid=${streamKey}`;
+    const hlsUrl = `/live/${streamKey}/index.m3u8`;
 
     db.prepare(`
       INSERT INTO streams (id, user_id, name, description, stream_key, rtmp_url, srt_url, srt_latency, status, region, recording_enabled)
@@ -76,6 +80,9 @@ router.post('/', (req, res) => {
     );
 
     const stream = db.prepare('SELECT * FROM streams WHERE id = ?').get(id);
+    stream.hls_url = hlsUrl;
+    stream.ingest_url = `rtmp://${host.replace(/:.*$/, '')}:1935/live/${streamKey}`;
+
     console.log(`[Streams] Created stream "${name}" (${id}) for user ${req.user.id}`);
 
     res.status(201).json({
@@ -104,6 +111,8 @@ router.get('/:id', (req, res) => {
 
     // Fetch associated SRTLA bonds
     const bonds = db.prepare('SELECT * FROM srtla_bonds WHERE stream_id = ?').all(stream.id);
+
+    stream.hls_url = `/live/${stream.stream_key}/index.m3u8`;
 
     res.json({
       stream: {
@@ -169,9 +178,6 @@ router.delete('/:id', (req, res) => {
       return res.status(404).json({ error: 'Stream not found' });
     }
 
-    // Stop simulation if running
-    streamManager.stopSimulation(req.params.id);
-
     // Delete destinations first, then the stream
     db.prepare('DELETE FROM destinations WHERE stream_id = ?').run(req.params.id);
     db.prepare('DELETE FROM srtla_bonds WHERE stream_id = ?').run(req.params.id);
@@ -209,9 +215,6 @@ router.post('/:id/start', (req, res) => {
 
     // Update all enabled destinations to 'connected' status
     db.prepare("UPDATE destinations SET status = 'connected' WHERE stream_id = ? AND enabled = 1").run(req.params.id);
-
-    // Start stream health simulation
-    streamManager.startSimulation(req.params.id);
 
     // Broadcast via Socket.IO
     const io = req.app.get('io');
@@ -251,9 +254,6 @@ router.post('/:id/stop', (req, res) => {
 
     // Update all destinations to 'idle'
     db.prepare("UPDATE destinations SET status = 'idle' WHERE stream_id = ?").run(req.params.id);
-
-    // Stop health simulation
-    streamManager.stopSimulation(req.params.id);
 
     // Broadcast via Socket.IO
     const io = req.app.get('io');

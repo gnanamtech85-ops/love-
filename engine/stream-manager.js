@@ -1,51 +1,128 @@
+const NodeMediaServer = require('node-media-server');
+const fs = require('fs');
+const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/init');
 
-const simulations = new Map();
+let nms = null;
 let ioInstance = null;
+const activeStreams = new Map();
+
+const HLS_DIR = path.join(__dirname, '..', 'media', 'live');
 
 function setIo(io) {
   ioInstance = io;
 }
 
-function startSimulation(streamId) {
-  if (simulations.has(streamId)) return;
-  const db = getDb();
-  let uptime = 0;
-  const interval = setInterval(() => {
-    uptime += 5;
-    const viewers = Math.floor(20 + Math.random() * 480);
-    const bitrate = Math.floor(2000 + Math.random() * 4000);
-    const fps = Math.random() > 0.3 ? 60 : 30;
-    const bandwidth = parseFloat((bitrate * viewers / 1e6).toFixed(2));
-    db.prepare(`
-      INSERT INTO analytics_events (id, stream_id, event_type, viewer_count, bitrate, fps, bandwidth, timestamp)
-      VALUES (?, ?, 'health_check', ?, ?, ?, ?, datetime('now'))
-    `).run(uuidv4(), streamId, viewers, bitrate, fps, bandwidth);
-    if (ioInstance) {
-      ioInstance.of('/stream-monitor').emit('stream:health', {
-        streamId,
-        bitrate,
-        fps,
-        viewers,
-        uptime,
-        resolution: '1920x1080',
-        codec: 'H.264',
-        keyframeInterval: 2,
-        droppedFrames: Math.floor(Math.random() * 5),
-        bandwidth,
-        timestamp: new Date().toISOString()
-      });
+function startNms() {
+  if (nms) return nms;
+
+  if (!fs.existsSync(HLS_DIR)) {
+    fs.mkdirSync(HLS_DIR, { recursive: true });
+  }
+
+  const config = {
+    rtmp: {
+      port: 1935,
+      chunk_size: 60000,
+      gop_cache: true,
+      ping: 30,
+      ping_timeout: 60
+    },
+    http: {
+      port: 8001,
+      mediaroot: path.join(__dirname, '..', 'media'),
+      allow_origin: '*'
+    },
+    trans: {
+      ffmpeg: '',
+      tasks: []
     }
-  }, 5000);
-  simulations.set(streamId, interval);
+  };
+
+  nms = new NodeMediaServer(config);
+
+  nms.on('preConnect', (id, args) => {
+    console.log(`[NMS] Incoming connection: ${id}`);
+    return true;
+  });
+
+  nms.on('postConnect', (id, args) => {
+    console.log(`[NMS] Client connected: ${id}`);
+  });
+
+  nms.on('doneConnect', (id, args) => {
+    console.log(`[NMS] Client disconnected: ${id}`);
+  });
+
+  nms.on('prePublish', (id, StreamPath, args) => {
+    const streamKey = StreamPath.replace('/live/', '');
+    console.log(`[NMS] Stream publishing: ${streamKey}`);
+    return true;
+  });
+
+  nms.on('postPublish', (id, StreamPath, args) => {
+    const streamKey = StreamPath.replace('/live/', '');
+    console.log(`[NMS] Stream started: ${streamKey}`);
+
+    const db = getDb();
+    const stream = db.prepare('SELECT * FROM streams WHERE stream_key = ?').get(streamKey);
+    if (stream) {
+      db.prepare("UPDATE streams SET status = 'live', updated_at = datetime('now') WHERE id = ?").run(stream.id);
+      db.prepare("UPDATE destinations SET status = 'connected' WHERE stream_id = ? AND enabled = 1").run(stream.id);
+
+      activeStreams.set(streamKey, { streamId: stream.id, startTime: Date.now() });
+
+      if (ioInstance) {
+        ioInstance.of('/stream-monitor').emit('stream:started', {
+          streamId: stream.id,
+          name: stream.name,
+          timestamp: new Date().toISOString()
+        });
+      }
+      console.log(`[NMS] Stream "${stream.name}" (${stream.id}) is now LIVE via RTMP`);
+    } else {
+      console.log(`[NMS] Unknown stream key: ${streamKey}`);
+    }
+  });
+
+  nms.on('donePublish', (id, StreamPath, args) => {
+    const streamKey = StreamPath.replace('/live/', '');
+    console.log(`[NMS] Stream stopped: ${streamKey}`);
+
+    activeStreams.delete(streamKey);
+
+    const db = getDb();
+    const stream = db.prepare('SELECT * FROM streams WHERE stream_key = ?').get(streamKey);
+    if (stream) {
+      db.prepare("UPDATE streams SET status = 'offline', updated_at = datetime('now') WHERE id = ?").run(stream.id);
+      db.prepare("UPDATE destinations SET status = 'idle' WHERE stream_id = ?").run(stream.id);
+
+      if (ioInstance) {
+        ioInstance.of('/stream-monitor').emit('stream:stopped', {
+          streamId: stream.id,
+          name: stream.name,
+          timestamp: new Date().toISOString()
+        });
+      }
+      console.log(`[NMS] Stream "${stream.name}" (${stream.id}) is now OFFLINE`);
+    }
+  });
+
+  nms.run();
+  console.log('[NMS] Node Media Server started (RTMP:1935, HTTP:8001)');
+  return nms;
 }
 
-function stopSimulation(streamId) {
-  if (simulations.has(streamId)) {
-    clearInterval(simulations.get(streamId));
-    simulations.delete(streamId);
+function stopNms() {
+  if (nms) {
+    try { nms.stop(); } catch (e) {}
+    nms = null;
   }
 }
 
-module.exports = { setIo, startSimulation, stopSimulation };
+function getActiveStreams() {
+  return Array.from(activeStreams.values());
+}
+
+module.exports = { setIo, startNms, stopNms, getActiveStreams };
