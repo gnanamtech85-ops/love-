@@ -1,0 +1,385 @@
+/* ============================================================
+   StreamCast — pricing.css
+   Pricing page-specific styles
+   ============================================================ */
+
+/* ——— Billing Toggle ——— */
+.billing-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-3xl);
+}
+
+.billing-toggle-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color var(--transition-base);
+  cursor: pointer;
+}
+
+.billing-toggle-label.active {
+  color: var(--text-primary);
+}
+
+.toggle-switch {
+  position: relative;
+  width: 56px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-base);
+}
+
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  background: var(--gradient-primary);
+  border-radius: 50%;
+  transition: transform var(--transition-base);
+  box-shadow: 0 2px 6px rgba(45, 104, 255, 0.3);
+}
+
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translateX(26px);
+}
+
+.toggle-switch input:checked + .toggle-track {
+  border-color: var(--accent-blue);
+  background: rgba(45, 104, 255, 0.08);
+}
+
+.billing-save-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+/* ——— Pricing specifics ——— */
+.pricing-description {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-lg);
+  min-height: 40px;
+}
+
+.pricing-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: var(--space-md) 0 var(--space-lg);
+}
+
+/* Annual pricing display */
+.pricing-annual {
+  display: none;
+}
+
+.pricing-annual.active {
+  display: block;
+}
+
+.pricing-monthly {
+  display: block;
+}
+
+.pricing-monthly.hidden {
+  display: none;
+}
+
+/* ——— Feature Comparison Table ——— */
+.comparison-section {
+  margin-top: var(--space-4xl);
+}
+
+.comparison-table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: var(--space-md) var(--space-lg);
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.88rem;
+}
+
+.comparison-table th {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.comparison-table th:first-child,
+.comparison-table td:first-child {
+  text-align: left;
+  padding-left: var(--space-xl);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.comparison-table tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.comparison-table tr:last-child td {
+  border-bottom: none;
+}
+
+.comparison-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Highlight popular column */
+.comparison-table th.highlight-col {
+  color: var(--accent-blue);
+  position: relative;
+}
+
+.comparison-table td.highlight-col {
+  background: rgba(45, 104, 255, 0.03);
+}
+
+/* CSS-only checkmark */
+.comp-check,
+.comp-cross {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.comp-check {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+}
+
+.comp-check::after {
+  content: '';
+  width: 10px;
+  height: 6px;
+  border: 2px solid var(--accent-green);
+  border-top: none;
+  border-right: none;
+  transform: rotate(-45deg);
+  margin-top: -2px;
+}
+
+.comp-cross {
+  background: rgba(107, 107, 128, 0.1);
+  color: var(--text-muted);
+  position: relative;
+}
+
+.comp-cross::before,
+.comp-cross::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 2px;
+  background: var(--text-muted);
+  opacity: 0.4;
+}
+
+.comp-cross::before { transform: rotate(45deg); }
+.comp-cross::after  { transform: rotate(-45deg); }
+
+.comp-text {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* ——— FAQ Accordion ——— */
+.faq-section {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faq-item {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
+  overflow: hidden;
+  background: var(--glass-bg);
+  transition: all var(--transition-base);
+}
+
+.faq-item:hover {
+  border-color: var(--glass-border-hover);
+}
+
+.faq-item.active {
+  border-color: rgba(45, 104, 255, 0.2);
+  background: rgba(45, 104, 255, 0.02);
+}
+
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-lg);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition-fast);
+}
+
+.faq-question:hover {
+  color: var(--accent-blue);
+}
+
+.faq-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.faq-icon::before,
+.faq-icon::after {
+  content: '';
+  position: absolute;
+  background: var(--text-secondary);
+  transition: all var(--transition-base);
+}
+
+.faq-icon::before {
+  width: 12px;
+  height: 2px;
+}
+
+.faq-icon::after {
+  width: 2px;
+  height: 12px;
+}
+
+.faq-item.active .faq-icon {
+  background: rgba(45, 104, 255, 0.1);
+  border-color: rgba(45, 104, 255, 0.2);
+}
+
+.faq-item.active .faq-icon::after {
+  transform: rotate(90deg);
+  opacity: 0;
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-smooth), padding var(--transition-smooth);
+}
+
+.faq-answer-inner {
+  padding: 0 var(--space-lg) var(--space-lg);
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.faq-item.active .faq-answer {
+  max-height: 300px;
+}
+
+/* ——— Pricing Page Hero ——— */
+.pricing-hero {
+  padding: 8rem 0 var(--space-2xl);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-hero::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: 50%;
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(
+    circle,
+    rgba(45, 104, 255, 0.08) 0%,
+    rgba(124, 58, 237, 0.05) 40%,
+    transparent 70%
+  );
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.pricing-hero h1 {
+  position: relative;
+  margin-bottom: var(--space-md);
+}
+
+.pricing-hero p {
+  position: relative;
+  font-size: 1.1rem;
+  max-width: 550px;
+  margin: 0 auto;
+}
+
+/* ——— Responsive ——— */
+@media (max-width: 767px) {
+  .comparison-table-wrapper {
+    margin: 0 calc(var(--space-lg) * -1);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .faq-question {
+    font-size: 0.88rem;
+    padding: var(--space-md);
+  }
+
+  .faq-answer-inner {
+    padding: 0 var(--space-md) var(--space-md);
+  }
+}

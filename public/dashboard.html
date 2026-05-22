@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamCast — Dashboard</title>
+  <meta name="description" content="StreamCast Dashboard - Manage your live streams, multistream destinations, SRTLA bonds, and analytics.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%232D68FF'/><polygon points='13,10 13,22 23,16' fill='white'/></svg>">
+</head>
+<body>
+  <div class="dashboard-layout">
+
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="sidebar-logo">
+          <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="url(#lg1)"/><polygon points="13,10 13,22 23,16" fill="white"/><defs><linearGradient id="lg1" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#2D68FF"/><stop offset="1" stop-color="#7C3AED"/></linearGradient></defs></svg>
+          <span>StreamCast</span>
+        </a>
+        <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Main -->
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a class="nav-item active" data-page="overview" data-tooltip="Overview" onclick="navigateTo('overview')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span class="nav-label">Overview</span>
+          </a>
+          <a class="nav-item" data-page="streams" data-tooltip="Streams" onclick="navigateTo('streams')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            <span class="nav-label">Streams</span>
+            <span class="nav-badge" id="stream-count">3</span>
+          </a>
+        </div>
+
+        <!-- Streaming -->
+        <div class="nav-section">
+          <div class="nav-section-title">Streaming</div>
+          <a class="nav-item" data-page="multistream" data-tooltip="Multistream" onclick="navigateTo('multistream')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><polyline points="7 9 12 12 17 9"/></svg>
+            <span class="nav-label">Multistream</span>
+          </a>
+          <a class="nav-item" data-page="srtla" data-tooltip="SRT / SRTLA" onclick="navigateTo('srtla')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span class="nav-label">SRT / SRTLA</span>
+            <span class="srt-badge" style="margin-left:auto;font-size:0.55rem;background:var(--accent-teal);color:#fff;padding:2px 6px;border-radius:9999px;font-weight:700;">SRT</span>
+          </a>
+          <a class="nav-item" data-page="recordings" data-tooltip="Recordings" onclick="navigateTo('recordings')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="nav-label">Recordings</span>
+          </a>
+        </div>
+
+        <!-- Content -->
+        <div class="nav-section">
+          <div class="nav-section-title">Content</div>
+          <a class="nav-item" data-page="player" data-tooltip="Embed Player" onclick="navigateTo('player')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14" y1="4" x2="10" y2="20"/></svg>
+            <span class="nav-label">Embed Player</span>
+          </a>
+          <a class="nav-item" data-page="analytics" data-tooltip="Analytics" onclick="navigateTo('analytics')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span class="nav-label">Analytics</span>
+          </a>
+        </div>
+
+        <!-- Account -->
+        <div class="nav-section">
+          <div class="nav-section-title">Account</div>
+          <a class="nav-item" data-page="settings" data-tooltip="Settings" onclick="navigateTo('settings')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span class="nav-label">Settings</span>
+          </a>
+          <a class="nav-item" data-tooltip="Billing" onclick="navigateTo('settings')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <span class="nav-label">Billing</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user" onclick="navigateTo('settings')">
+          <div class="sidebar-user-avatar" id="user-avatar">D</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="user-name">Demo User</div>
+            <div class="sidebar-user-plan" id="user-plan">Pro Plan</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150;"></div>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <div class="main-content">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <button class="topbar-btn mobile-menu-btn" onclick="openMobileSidebar()" style="display:none;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div>
+          <h1 class="topbar-title" id="page-title">Overview</h1>
+          <div class="topbar-breadcrumb" id="page-breadcrumb">Dashboard</div>
+        </div>
+        <div class="topbar-spacer"></div>
+        <div class="topbar-actions">
+          <button class="topbar-btn" id="stream-health-indicator" title="Stream Health">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span class="health-text">Healthy</span>
+          </button>
+          <button class="topbar-btn notification-bell" onclick="showToast('No new notifications','info')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="badge">2</span>
+          </button>
+          <button class="topbar-btn primary" onclick="openCreateStreamModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Stream
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content-area" id="content-area">
+        <!-- Dynamic content loaded here by JS router -->
+        <div style="display:flex;align-items:center;justify-content:center;height:60vh;">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CREATE STREAM MODAL ═══ -->
+  <div class="modal-overlay" id="create-stream-modal">
+    <div class="modal" style="max-width:620px;">
+      <div class="modal-header">
+        <h2>Create New Stream</h2>
+        <button class="modal-close" onclick="closeModal('create-stream-modal')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Stream Name *</label>
+          <input type="text" class="form-input" id="new-stream-name" placeholder="e.g. My Gaming Stream">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" id="new-stream-desc" placeholder="What's this stream about?"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Region</label>
+            <select class="form-select" id="new-stream-region">
+              <option value="us-east">US East (New York)</option>
+              <option value="us-west">US West (Los Angeles)</option>
+              <option value="eu-west">EU West (London)</option>
+              <option value="eu-central">EU Central (Frankfurt)</option>
+              <option value="ap-south">Asia Pacific (Singapore)</option>
+              <option value="ap-east">Asia Pacific (Tokyo)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ingest Protocol</label>
+            <select class="form-select" id="new-stream-protocol" onchange="toggleSRTLatencyInModal()">
+              <option value="rtmp">RTMP</option>
+              <option value="srt">SRT (Secure Reliable Transport)</option>
+              <option value="whip">WHIP (WebRTC)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SRT Latency Config (shown when SRT selected) -->
+        <div class="form-group" id="modal-srt-latency-section" style="display:none;">
+          <label class="form-label">SRT Latency</label>
+          <div class="srt-latency-presets" id="modal-srt-presets">
+            <button class="latency-preset" data-value="50" onclick="selectLatencyPreset(this, 'modal')">50ms</button>
+            <button class="latency-preset" data-value="60" onclick="selectLatencyPreset(this, 'modal')">60ms</button>
+            <button class="latency-preset active" data-value="90" onclick="selectLatencyPreset(this, 'modal')">90ms</button>
+            <button class="latency-preset" data-value="120" onclick="selectLatencyPreset(this, 'modal')">120ms</button>
+            <button class="latency-preset" data-value="200" onclick="selectLatencyPreset(this, 'modal')">200ms</button>
+            <button class="latency-preset" data-value="500" onclick="selectLatencyPreset(this, 'modal')">500ms</button>
+            <button class="latency-preset" data-value="custom" onclick="selectLatencyPreset(this, 'modal')">Custom</button>
+          </div>
+          <div class="custom-latency-input" id="modal-custom-latency">
+            <input type="number" min="20" max="8000" value="120" placeholder="Enter ms" id="modal-custom-latency-value">
+            <span>ms</span>
+          </div>
+          <div class="form-hint">Lower latency = less delay but more sensitive to packet loss. Recommended: 90ms for stable connections, 200ms+ for cellular/bonded.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+            <label class="toggle-switch">
+              <input type="checkbox" id="new-stream-recording" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            Enable Cloud Recording
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('create-stream-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="createStream()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create Stream
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ADD DESTINATION MODAL ═══ -->
+  <div class="modal-overlay" id="add-destination-modal">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">
+        <h2>Add Destination</h2>
+        <button class="modal-close" onclick="closeModal('add-destination-modal')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Platform</label>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;" id="platform-selector">
+            <button class="platform-select-btn" data-platform="youtube" onclick="selectPlatform(this)">
+              <div class="destination-platform-icon" style="background:#FF0000;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.6rem;font-weight:700;margin:0 auto 4px;">YT</div>
+              <span>YouTube</span>
+            </button>
+            <button class="platform-select-btn" data-platform="twitch" onclick="selectPlatform(this)">
+              <div class="destination-platform-icon" style="background:#9146FF;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.6rem;font-weight:700;margin:0 auto 4px;">TW</div>
+              <span>Twitch</span>
+            </button>
+            <button class="platform-select-btn" data-platform="facebook" onclick="selectPlatform(this)">
+              <div class="destination-platform-icon" style="background:#1877F2;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.6rem;font-weight:700;margin:0 auto 4px;">FB</div>
+              <span>Facebook</span>
+            </button>
+            <button class="platform-select-btn" data-platform="kick" onclick="selectPlatform(this)">
+              <div class="destination-platform-icon" style="background:#53FC18;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#000;font-size:0.6rem;font-weight:700;margin:0 auto 4px;">KK</div>
+              <span>Kick</span>
+            </button>
+            <button class="platform-select-btn" data-platform="custom_rtmp" onclick="selectPlatform(this)">
+              <div class="destination-platform-icon" style="background:#333;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.5rem;font-weight:700;margin:0 auto 4px;">RTMP</div>
+              <span>Custom RTMP</span>
+            </button>
+            <button class="platform-select-btn" data-platform="custom_srt" onclick="selectPlatform(this)">
+              <div class="destination-platform-icon" style="background:var(--accent-teal);width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.5rem;font-weight:700;margin:0 auto 4px;">SRT</div>
+              <span>Custom SRT</span>
+            </button>
+          </div>
+        </div>
+        <div class="form-group" id="dest-rtmp-fields">
+          <label class="form-label">RTMP URL</label>
+          <input type="text" class="form-input" id="dest-rtmp-url" placeholder="rtmp://live.example.com/live">
+          <div style="margin-top:12px;">
+            <label class="form-label">Stream Key</label>
+            <input type="text" class="form-input" id="dest-stream-key" placeholder="xxxx-xxxx-xxxx-xxxx">
+          </div>
+        </div>
+        <div class="form-group" id="dest-srt-fields" style="display:none;">
+          <label class="form-label">SRT URL</label>
+          <input type="text" class="form-input" id="dest-srt-url" placeholder="srt://live.example.com:9000?streamid=xxx">
+          <div style="margin-top:12px;">
+            <label class="form-label">SRT Latency</label>
+            <div class="srt-latency-presets" id="dest-srt-presets">
+              <button class="latency-preset active" data-value="120" onclick="selectLatencyPreset(this, 'dest')">120ms</button>
+              <button class="latency-preset" data-value="200" onclick="selectLatencyPreset(this, 'dest')">200ms</button>
+              <button class="latency-preset" data-value="500" onclick="selectLatencyPreset(this, 'dest')">500ms</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Display Name (optional)</label>
+          <input type="text" class="form-input" id="dest-display-name" placeholder="e.g. My YouTube Channel">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('add-destination-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="addDestination()">Add Destination</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CREATE SRTLA BOND MODAL ═══ -->
+  <div class="modal-overlay" id="create-bond-modal">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-header">
+        <h2>Create SRTLA Bond</h2>
+        <button class="modal-close" onclick="closeModal('create-bond-modal')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Bond Name *</label>
+          <input type="text" class="form-input" id="bond-name" placeholder="e.g. Mobile IRL Bond">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bonding Mode</label>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            <button class="bond-mode-select active" data-mode="aggregate" onclick="selectBondMode(this)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <strong>Aggregate</strong>
+              <small>Combine bandwidth</small>
+            </button>
+            <button class="bond-mode-select" data-mode="broadcast" onclick="selectBondMode(this)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5.64 19.36a9 9 0 0 1 0-12.73"/><path d="M18.36 6.64a9 9 0 0 1 0 12.73"/><circle cx="12" cy="12" r="2"/></svg>
+              <strong>Broadcast</strong>
+              <small>Max redundancy</small>
+            </button>
+            <button class="bond-mode-select" data-mode="failover" onclick="selectBondMode(this)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <strong>Failover</strong>
+              <small>Auto-switch</small>
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">SRT Latency</label>
+          <div class="srt-latency-presets" id="bond-srt-presets">
+            <button class="latency-preset" data-value="50" onclick="selectLatencyPreset(this, 'bond')">50ms</button>
+            <button class="latency-preset" data-value="60" onclick="selectLatencyPreset(this, 'bond')">60ms</button>
+            <button class="latency-preset" data-value="90" onclick="selectLatencyPreset(this, 'bond')">90ms</button>
+            <button class="latency-preset active" data-value="120" onclick="selectLatencyPreset(this, 'bond')">120ms</button>
+            <button class="latency-preset" data-value="200" onclick="selectLatencyPreset(this, 'bond')">200ms</button>
+            <button class="latency-preset" data-value="500" onclick="selectLatencyPreset(this, 'bond')">500ms</button>
+            <button class="latency-preset" data-value="custom" onclick="selectLatencyPreset(this, 'bond')">Custom</button>
+          </div>
+          <div class="custom-latency-input" id="bond-custom-latency">
+            <input type="number" min="20" max="8000" value="120" placeholder="Enter ms" id="bond-custom-latency-value">
+            <span>ms</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">SRT Overhead (%)</label>
+            <input type="number" class="form-input" value="25" min="5" max="100" id="bond-overhead">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Encryption</label>
+            <select class="form-select" id="bond-encryption">
+              <option value="none">None</option>
+              <option value="aes-128">AES-128</option>
+              <option value="aes-256" selected>AES-256</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assign to Stream</label>
+          <select class="form-select" id="bond-stream-select">
+            <option value="">Select a stream...</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('create-bond-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="createBond()">Create Bond</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Platform select button styles (inline because they're modal-specific) -->
+  <style>
+    .platform-select-btn {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: var(--radius-md); padding: 12px 8px;
+      cursor: pointer; text-align: center;
+      color: var(--text-secondary); font-size: 0.7rem;
+      transition: var(--transition-fast);
+    }
+    .platform-select-btn:hover { border-color: var(--accent-blue); color: var(--text-primary); }
+    .platform-select-btn.selected { border-color: var(--accent-blue); background: rgba(45,104,255,0.1); color: var(--text-primary); }
+
+    .bond-mode-select {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: var(--radius-md); padding: 16px 8px;
+      cursor: pointer; text-align: center;
+      color: var(--text-secondary);
+      transition: var(--transition-fast);
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .bond-mode-select strong { font-size: 0.8rem; color: var(--text-primary); }
+    .bond-mode-select small { font-size: 0.65rem; color: var(--text-muted); }
+    .bond-mode-select:hover { border-color: var(--accent-purple); }
+    .bond-mode-select.active { border-color: var(--accent-purple); background: rgba(124,58,237,0.1); }
+
+    /* Mobile menu button */
+    @media (max-width: 1024px) {
+      .mobile-menu-btn { display: flex !important; }
+    }
+  </style>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/charts.js"></script>
+  <script src="/js/streams.js"></script>
+  <script src="/js/multistream.js"></script>
+  <script src="/js/srtla.js"></script>
+  <script src="/js/analytics.js"></script>
+  <script src="/js/player.js"></script>
+  <script src="/js/recordings.js"></script>
+  <script src="/js/settings.js"></script>
+</body>
+</html>

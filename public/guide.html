@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamCast — User Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+    }
+    a { color: var(--accent-blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; border-radius: var(--radius-md); }
+
+    .guide-header {
+      background: var(--gradient-hero);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 48px 24px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .guide-header::before {
+      content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(ellipse at center, rgba(45,104,255,.08) 0%, transparent 60%);
+    }
+    .guide-header h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 8px; position: relative; }
+    .guide-header h1 span { background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .guide-header p { color: var(--text-secondary); font-size: 1.1rem; position: relative; }
+    .guide-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,26,.95); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 12px 24px; overflow-x: auto;
+      display: flex; gap: 8px; align-items: center;
+    }
+    .guide-nav a {
+      white-space: nowrap; font-size: .82rem; font-weight: 500;
+      padding: 6px 14px; border-radius: var(--radius-full);
+      border: 1px solid var(--glass-border); color: var(--text-secondary);
+      transition: var(--transition-fast);
+    }
+    .guide-nav a:hover { border-color: var(--accent-blue); color: var(--accent-blue); text-decoration: none; }
+    .guide-container {
+      max-width: 900px; margin: 0 auto; padding: 48px 24px;
+    }
+    .toc-card {
+      background: var(--glass-bg); backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); border-radius: var(--radius-xl);
+      padding: 32px; margin-bottom: 48px;
+    }
+    .toc-card h2 { font-size: 1.2rem; margin-bottom: 16px; color: var(--accent-blue); }
+    .toc-card ol { columns: 2; column-gap: 32px; list-style: none; counter-reset: toc; }
+    .toc-card ol li { counter-increment: toc; margin-bottom: 8px; break-inside: avoid; }
+    .toc-card ol li::before {
+      content: counter(toc); display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--gradient-primary); font-size: .75rem; font-weight: 700;
+      margin-right: 10px; vertical-align: middle;
+    }
+    .toc-card ol li a { font-size: .9rem; }
+
+    section { margin-bottom: 56px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .section-header .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--gradient-primary); font-size: .9rem; font-weight: 700; flex-shrink: 0;
+    }
+    .section-header h2 { font-size: 1.5rem; font-weight: 700; }
+    .section-header h2 small { font-size: .8rem; font-weight: 400; color: var(--text-muted); }
+
+    h3 { font-size: 1.1rem; font-weight: 600; color: var(--accent-blue); margin: 24px 0 12px; }
+    h4 { font-size: .95rem; font-weight: 600; margin: 18px 0 8px; color: var(--text-secondary); }
+
+    .guide-container p { color: var(--text-secondary); margin-bottom: 12px; }
+
+    .info-box {
+      background: rgba(45,104,255,.08); border-left: 3px solid var(--accent-blue);
+      border-radius: var(--radius-sm); padding: 16px 20px; margin: 16px 0;
+    }
+    .info-box.warn { background: rgba(239,68,68,.08); border-left-color: var(--accent-red); }
+    .info-box.success { background: rgba(16,185,129,.08); border-left-color: var(--accent-green); }
+    .info-box p { margin-bottom: 0; font-size: .9rem; }
+
+    ul, ol { color: var(--text-secondary); margin: 8px 0 16px 24px; }
+    li { margin-bottom: 6px; }
+    li strong { color: var(--text-primary); }
+
+    .setting-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0;
+    }
+    .setting-item {
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md); padding: 16px;
+    }
+    .setting-item .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: 4px; }
+    .setting-item .value { font-weight: 600; }
+    .setting-item .desc { font-size: .85rem; color: var(--text-muted); margin-top: 4px; }
+
+    .step-list { counter-reset: step; list-style: none; margin: 16px 0 !important; }
+    .step-list li { counter-increment: step; margin-bottom: 12px; padding-left: 36px; position: relative; }
+    .step-list li::before {
+      content: counter(step); position: absolute; left: 0; top: 0;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--glass-bg-heavy); border: 1px solid var(--glass-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 600; color: var(--accent-blue);
+    }
+
+    .preset-table {
+      width: 100%; border-collapse: collapse; margin: 16px 0;
+      font-size: .9rem;
+    }
+    .preset-table th, .preset-table td {
+      text-align: left; padding: 10px 14px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .preset-table th { background: var(--glass-bg); font-weight: 600; color: var(--text-secondary); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+    .preset-table td { color: var(--text-secondary); }
+    .preset-table td:first-child { font-weight: 600; color: var(--text-primary); }
+
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: var(--radius-full);
+      font-size: .75rem; font-weight: 600;
+    }
+    .badge-blue { background: rgba(45,104,255,.15); color: var(--accent-blue); }
+    .badge-green { background: rgba(16,185,129,.15); color: var(--accent-green); }
+    .badge-red { background: rgba(239,68,68,.15); color: var(--accent-red); }
+    .badge-purple { background: rgba(124,58,237,.15); color: var(--accent-purple); }
+    .badge-orange { background: rgba(245,158,11,.15); color: var(--accent-orange); }
+
+    .key-kbd {
+      display: inline-block; padding: 2px 8px; font-family: 'JetBrains Mono', monospace;
+      font-size: .8rem; background: var(--glass-bg-heavy); border: 1px solid var(--glass-border);
+      border-radius: 4px; color: var(--text-primary);
+    }
+
+    .footer-guide {
+      text-align: center; padding: 32px 24px;
+      border-top: 1px solid var(--glass-border); color: var(--text-muted); font-size: .85rem;
+    }
+
+    @media (max-width: 768px) {
+      .toc-card ol { columns: 1; }
+      .setting-grid { grid-template-columns: 1fr; }
+      .guide-header h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="guide-header">
+  <h1><span>StreamCast</span> User Guide</h1>
+  <p>Everything you need to know to stream like a pro</p>
+</header>
+
+<nav class="guide-nav">
+  <a href="#getting-started">Getting Started</a>
+  <a href="#dashboard">Dashboard</a>
+  <a href="#streams">Streams</a>
+  <a href="#multistream">Multistream</a>
+  <a href="#srtla">SRT / SRTLA</a>
+  <a href="#player">Embed Player</a>
+  <a href="#recordings">Recordings</a>
+  <a href="#analytics">Analytics</a>
+  <a href="#settings">Settings &amp; Billing</a>
+  <a href="#srt-latency">SRT Latency Presets</a>
+  <a href="#faq">FAQ</a>
+</nav>
+
+<div class="guide-container">
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc-card">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#getting-started">Getting Started</a></li>
+      <li><a href="#dashboard">Dashboard Overview</a></li>
+      <li><a href="#streams">Streams — Create, Go Live, Stop</a></li>
+      <li><a href="#multistream">Multistream — Destination Platforms</a></li>
+      <li><a href="#srtla">SRT / SRTLA — Bonding &amp; Latency</a></li>
+      <li><a href="#player">Embed Player — Live Preview</a></li>
+      <li><a href="#recordings">Recordings — VOD Management</a></li>
+      <li><a href="#analytics">Analytics — Viewer &amp; Bitrate Charts</a></li>
+      <li><a href="#settings">Settings &amp; Billing</a></li>
+      <li><a href="#srt-latency">SRT Latency Presets Reference</a></li>
+      <li><a href="#faq">Frequently Asked Questions</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. GETTING STARTED -->
+  <section id="getting-started">
+    <div class="section-header"><span class="num">1</span><h2>Getting Started</h2></div>
+
+    <h3>Starting the Server</h3>
+    <ol class="step-list">
+      <li>Open a terminal in the project folder: <strong>C:\Users\gnanam\Pictures\live website</strong></li>
+      <li>Run <span class="key-kbd">node server.js</span></li>
+      <li>Open <strong>http://localhost:3000</strong> in your browser</li>
+    </ol>
+
+    <h3>Demo Login Credentials</h3>
+    <div class="info-box success">
+      <p><strong>Email:</strong> demo@streamcast.io &nbsp;·&nbsp; <strong>Password:</strong> demo123</p>
+    </div>
+    <p>The login page (<a href="/login.html">/login.html</a>) is pre-filled with demo credentials — just click <strong>Sign In</strong>. You can also <a href="/signup.html">create a new account</a>.</p>
+  </section>
+
+  <!-- 2. DASHBOARD -->
+  <section id="dashboard">
+    <div class="section-header"><span class="num">2</span><h2>Dashboard Overview <small>/dashboard.html</small></h2></div>
+    <p>The dashboard is your command center. After logging in, you land here. It shows:</p>
+    <div class="setting-grid">
+      <div class="setting-item">
+        <div class="label">Live Streams</div>
+        <div class="value">Active streams count</div>
+        <div class="desc">How many streams are currently broadcasting</div>
+      </div>
+      <div class="setting-item">
+        <div class="label">Total Streams</div>
+        <div class="value">All streams you've created</div>
+        <div class="desc">Lifetime count including offline streams</div>
+      </div>
+      <div class="setting-item">
+        <div class="label">Current Viewers</div>
+        <div class="value">Total viewers across all live streams</div>
+        <div class="desc">Sum of simulated viewer counts</div>
+      </div>
+      <div class="setting-item">
+        <div class="label">Bandwidth Usage</div>
+        <div class="value">Current bandwidth consumption</div>
+        <div class="desc">Displayed in Mbps</div>
+      </div>
+    </div>
+    <h4>Sidebar Navigation</h4>
+    <ul>
+      <li><strong>Dashboard</strong> — main overview with stats cards and recent streams</li>
+      <li><strong>Streams</strong> — create, go live, stop, and manage all streams</li>
+      <li><strong>Multistream</strong> — add YouTube, Twitch, Facebook, Kick, or custom RTMP/SRT destinations</li>
+      <li><strong>SRT / SRTLA</strong> — create SRTLA bonds with link aggregation</li>
+      <li><strong>Embed Player</strong> — live video preview with HLS.js and embed code generator</li>
+      <li><strong>Recordings</strong> — view and manage recorded VODs</li>
+      <li><strong>Analytics</strong> — viewer and bitrate charts with time-range filters</li>
+      <li><strong>Settings</strong> — profile editor, subscription usage, billing, plan management</li>
+    </ul>
+  </section>
+
+  <!-- 3. STREAMS -->
+  <section id="streams">
+    <div class="section-header"><span class="num">3</span><h2>Streams <small>Create, Go Live, Stop</small></h2></div>
+
+    <h3>Creating a New Stream</h3>
+    <ol class="step-list">
+      <li>Navigate to <strong>Streams</strong> in the sidebar</li>
+      <li>Click the <strong>"+ New Stream"</strong> button (top-right or floating action button)</li>
+      <li>Fill in the stream details:</li>
+    </ol>
+
+    <div class="setting-grid">
+      <div class="setting-item"><div class="label">Stream Name</div><div class="value">Required</div><div class="desc">A descriptive name (e.g. "Friday Night Gaming")</div></div>
+      <div class="setting-item"><div class="label">Region</div><div class="value"><span class="badge badge-blue">Auto</span> / US-EAST / EU-WEST / APAC</div><div class="desc">Geographic ingest region for lower latency</div></div>
+      <div class="setting-item"><div class="label">Ingest Protocol</div><div class="value">RTMP / SRT / SRTLA</div><div class="desc">RTMP for broad compatibility, SRT for reliability over poor networks, SRTLA for link aggregation</div></div>
+      <div class="setting-item"><div class="label">SRT Latency</div><div class="value">50ms–8000ms</div><div class="desc">Only shown when SRT/SRTLA is selected. Lower = less delay, higher = more stability</div></div>
+      <div class="setting-item"><div class="label">Cloud Recording</div><div class="value">On / Off</div><div class="desc">Automatically record the stream for later playback</div></div>
+    </div>
+
+    <h3>Go Live / Stop</h3>
+    <ul>
+      <li><strong>Go Live</strong> — click the "Go Live" button on a stream card. Status changes to <span class="badge badge-green">Live</span> and health simulation begins (bitrate, fps, viewers update every 2 seconds).</li>
+      <li><strong>Stop</strong> — click "Stop" to end the broadcast. The stream goes offline and health simulation stops.</li>
+      <li><strong>Delete</strong> — remove a stream permanently. Confirmation required.</li>
+    </ul>
+
+    <div class="info-box">
+      <p><strong>Stream Key:</strong> Every stream gets a unique ingest URL and stream key after creation. Click "Copy Key" next to the stream key to copy it to your clipboard for use in OBS, vMix, Wirecast, or any encoder.</p>
+    </div>
+
+    <h4>Stream Card Information</h4>
+    <ul>
+      <li><strong>Name</strong> — the stream name you chose</li>
+      <li><strong>Status</strong> — <span class="badge badge-green">Live</span> or <span class="badge badge-red">Offline</span></li>
+      <li><strong>Viewers</strong> — current viewer count (simulated)</li>
+      <li><strong>Bitrate</strong> — current bitrate in kbps (simulated)</li>
+      <li><strong>Uptime</strong> — how long the stream has been live</li>
+      <li><strong>Region</strong> — the ingest region</li>
+      <li><strong>Protocol</strong> — RTMP / SRT / SRTLA</li>
+    </ul>
+  </section>
+
+  <!-- 4. MULTISTREAM -->
+  <section id="multistream">
+    <div class="section-header"><span class="num">4</span><h2>Multistream <small>Destination Platforms</small></h2></div>
+
+    <p>Multistream lets you broadcast to multiple platforms simultaneously from a single stream.</p>
+
+    <h3>Adding a Destination</h3>
+    <ol class="step-list">
+      <li>Navigate to <strong>Multistream</strong> in the sidebar</li>
+      <li>Select a stream from the dropdown (or create one first)</li>
+      <li>Click <strong>"+ Add Destination"</strong></li>
+      <li>Choose a platform:</li>
+    </ol>
+
+    <div class="setting-grid">
+      <div class="setting-item"><div class="label">YouTube</div><div class="value">RTMP(S)</div><div class="desc">Stream key from YouTube Studio &gt; Go Live</div></div>
+      <div class="setting-item"><div class="label">Twitch</div><div class="value">RTMP(S)</div><div class="desc">Stream key from Twitch Creator Dashboard</div></div>
+      <div class="setting-item"><div class="label">Facebook</div><div class="value">RTMP(S)</div><div class="desc">Stream key from Facebook Live Producer</div></div>
+      <div class="setting-item"><div class="label">Kick</div><div class="value">RTMP(S)</div><div class="desc">Stream key from Kick Creator Dashboard</div></div>
+      <div class="setting-item"><div class="label">Custom RTMP</div><div class="value">Any RTMP URL</div><div class="desc">Custom ingest endpoint (e.g., own server or other platform)</div></div>
+      <div class="setting-item"><div class="label">Custom SRT</div><div class="value">Any SRT URL</div><div class="desc">SRT ingest endpoint for low-latency delivery</div></div>
+    </div>
+
+    <h3>Configuring a Destination</h3>
+    <ul>
+      <li><strong>RTMP URL</strong> — the ingest endpoint URL from the platform (e.g. <span class="key-kbd">rtmp://a.rtmp.youtube.com/live2</span>)</li>
+      <li><strong>Stream Key</strong> — the unique key from the platform. Keep this private!</li>
+      <li><strong>Toggle</strong> — enable/disable a destination without deleting it</li>
+      <li><strong>Status Badge</strong> — <span class="badge badge-green">Connected</span> / <span class="badge badge-red">Disconnected</span> / <span class="badge badge-orange">Error</span></li>
+    </ul>
+
+    <div class="info-box warn">
+      <p><strong>Note:</strong> The destinations are configured but actual forwarding is simulated. In production, StreamCast would transmultiplex and forward the video to each platform's ingest endpoint.</p>
+    </div>
+  </section>
+
+  <!-- 5. SRT / SRTLA -->
+  <section id="srtla">
+    <div class="section-header"><span class="num">5</span><h2>SRT / SRTLA <small>Bonding &amp; Latency</small></h2></div>
+
+    <p>SRTLA (Secure Reliable Transport Link Aggregation) bonds multiple internet connections into one reliable stream. It's ideal for mobile/IRL streaming where a single connection may be unstable.</p>
+
+    <h3>Creating a Bond</h3>
+    <ol class="step-list">
+      <li>Navigate to <strong>SRT / SRTLA</strong> in the sidebar</li>
+      <li>Click <strong>"+ Create Bond"</strong></li>
+      <li>Configure the bond settings:</li>
+    </ol>
+
+    <div class="setting-grid">
+      <div class="setting-item"><div class="label">Bond Name</div><div class="value">Required</div><div class="desc">e.g. "Mobile IRL Bond" or "Event Backup"</div></div>
+      <div class="setting-item"><div class="label">Mode</div><div class="value">Aggregate / Broadcast / Failover</div><div class="desc">How interfaces are combined</div></div>
+      <div class="setting-item"><div class="label">SRT Latency</div><div class="value">50ms–8000ms</div><div class="desc">Latency preset for the SRT connection</div></div>
+      <div class="setting-item"><div class="label">Overhead %</div><div class="value">5%–25%</div><div class="desc">Extra bandwidth budget for retransmits</div></div>
+      <div class="setting-item"><div class="label">Encryption</div><div class="value">None / AES-128 / AES-256</div><div class="desc">Encrypt the stream in transit</div></div>
+      <div class="setting-item"><div class="label">Passphrase</div><div class="value">Optional</div><div class="desc">Required if encryption is set</div></div>
+    </div>
+
+    <h3>Bond Modes Explained</h3>
+    <div class="setting-grid">
+      <div class="setting-item">
+        <div class="label"><span class="badge badge-blue">Aggregate</span></div>
+        <div class="value">Combine bandwidth</div>
+        <div class="desc">All interfaces work together. Throughput = sum of all connections. Packet loss on one is compensated by others. Best for high-bitrate stable streaming.</div>
+      </div>
+      <div class="setting-item">
+        <div class="label"><span class="badge badge-purple">Broadcast</span></div>
+        <div class="value">Duplicate for redundancy</div>
+        <div class="desc">Same data sent over every interface. Receiver picks the first copy that arrives. Highest reliability, consumes more bandwidth. Best for mission-critical streams.</div>
+      </div>
+      <div class="setting-item">
+        <div class="label"><span class="badge badge-orange">Failover</span></div>
+        <div class="value">Auto-switch on failure</div>
+        <div class="desc">One primary interface active. If it drops, a secondary takes over seamlessly. Best for cellular + WiFi backup scenarios.</div>
+      </div>
+    </div>
+
+    <h3>Interface Monitoring</h3>
+    <p>Each bond has simulated interfaces (Cellular 5G, WiFi 6, Ethernet). Live stats update every <strong>2 seconds</strong> showing:</p>
+    <ul>
+      <li><strong>Status</strong> — <span class="badge badge-green">Active</span> / <span class="badge badge-orange">Degraded</span></li>
+      <li><strong>Throughput</strong> — Mbps per interface</li>
+      <li><strong>Latency</strong> — round-trip time in ms</li>
+      <li><strong>Packet Loss</strong> — percentage of lost packets</li>
+      <li><strong>Jitter</strong> — variance in packet arrival time (ms)</li>
+      <li><strong>Packets Sent / Received</strong> — cumulative counts</li>
+      <li><strong>Total Throughput</strong> — combined from all interfaces</li>
+    </ul>
+
+    <div class="info-box">
+      <p><strong>Tip:</strong> In <strong>Aggregate</strong> mode, a 5G interface (30 Mbps) + WiFi 6 (20 Mbps) gives you ~50 Mbps total throughput — enough for 4K streaming.</p>
+    </div>
+  </section>
+
+  <!-- 6. EMBED PLAYER -->
+  <section id="player">
+    <div class="section-header"><span class="num">6</span><h2>Embed Player <small>Live Preview</small></h2></div>
+
+    <p>The Embed Player page shows all live streams and lets you play them back with real-time health overlays using HLS.js.</p>
+
+    <h3>Using the Live Preview</h3>
+    <ol class="step-list">
+      <li>Navigate to <strong>Embed Player</strong> in the sidebar</li>
+      <li>Any live streams appear in the <strong>"Live Now"</strong> section</li>
+      <li>Click <strong>"📺 [stream name]"</strong> to open the preview modal</li>
+    </ol>
+
+    <h3>Preview Overlay Information</h3>
+    <ul>
+      <li><strong>Bitrate</strong> — current stream bitrate in kbps (updates live)</li>
+      <li><strong>FPS</strong> — frames per second (30 or 60)</li>
+      <li><strong>Viewers</strong> — current viewer count</li>
+      <li><strong>SRT Latency</strong> — badge showing SRT latency preset (e.g. "SRT: 90ms")</li>
+      <li><strong>Resolution &amp; Codec</strong> — displayed stream info</li>
+      <li><strong>Dropped Frames</strong> — count of frames dropped during transmission</li>
+    </ul>
+
+    <h3>Embed Code Generator</h3>
+    <p>Generate an embed HTML snippet to put the player on any website:</p>
+    <ul>
+      <li><strong>Width / Height</strong> — player dimensions (e.g. 640x360, 1280x720)</li>
+      <li><strong>Autoplay</strong> — toggle whether video starts playing automatically</li>
+      <li><strong>Mute</strong> — start with audio muted</li>
+      <li><strong>Theme</strong> — light or dark player theme</li>
+      <li>Click <strong>"Generate Embed"</strong> and copy the HTML</li>
+    </ul>
+
+    <div class="info-box">
+      <p><strong>Note:</strong> The HLS playback is simulated. A test pattern video plays while Socket.IO delivers real-time health metadata to the overlay.</p>
+    </div>
+  </section>
+
+  <!-- 7. RECORDINGS -->
+  <section id="recordings">
+    <div class="section-header"><span class="num">7</span><h2>Recordings <small>VOD Management</small></h2></div>
+
+    <p>Recordings are video-on-demand files saved when cloud recording was enabled during a live stream.</p>
+
+    <h3>Managing Recordings</h3>
+    <ul>
+      <li><strong>List View</strong> — each recording shows name, duration (mm:ss), file size (MB), format, and creation date</li>
+      <li><strong>Play</strong> — click the "▶ Play" button to open the recording in a video player (HLS.js)</li>
+      <li><strong>Delete</strong> — click the "🗑" or "Delete" button to remove. Confirmation required.</li>
+    </ul>
+
+    <div class="info-box success">
+      <p><strong>Tip:</strong> Cloud recording must be enabled at stream creation time. The recordings listed are seeded demo data.</p>
+    </div>
+  </section>
+
+  <!-- 8. ANALYTICS -->
+  <section id="analytics">
+    <div class="section-header"><span class="num">8</span><h2>Analytics <small>Viewer &amp; Bitrate Charts</small></h2></div>
+
+    <p>Analytics provides historical data for each stream, rendered as Canvas-based charts (no external libraries).</p>
+
+    <h3>How to Use</h3>
+    <ol class="step-list">
+      <li>Navigate to <strong>Analytics</strong> in the sidebar</li>
+      <li>View summary cards: <strong>Current Viewers</strong>, <strong>Peak Viewers</strong>, <strong>Avg Bitrate</strong>, <strong>Total Views</strong></li>
+      <li>Select a <strong>Stream</strong> from the dropdown</li>
+      <li>Select a <strong>Time Range:</strong></li>
+    </ol>
+
+    <div class="setting-grid">
+      <div class="setting-item"><div class="label">1H</div><div class="value">Last hour</div><div class="desc">Granular, 1-minute data points</div></div>
+      <div class="setting-item"><div class="label">6H</div><div class="value">Last 6 hours</div><div class="desc">5-minute data points</div></div>
+      <div class="setting-item"><div class="label">24H</div><div class="value">Last 24 hours</div><div class="desc">15-minute data points</div></div>
+      <div class="setting-item"><div class="label">7D</div><div class="value">Last 7 days</div><div class="desc">Hourly data points</div></div>
+    </div>
+
+    <h3>Charts</h3>
+    <ul>
+      <li><strong>Viewers Chart</strong> — line chart with gradient fill. Shows viewer count (y-axis) vs time (x-axis).</li>
+      <li><strong>Bitrate Chart</strong> — line chart with gradient fill. Shows bitrate in kbps over time.</li>
+      <li>Hover over data points to see exact values</li>
+      <li>Charts auto-resize with the window</li>
+    </ul>
+
+    <div class="info-box">
+      <p><strong>Data:</strong> Analytics data points are generated every 5 seconds by the stream manager engine for demo purposes.</p>
+    </div>
+  </section>
+
+  <!-- 9. SETTINGS & BILLING -->
+  <section id="settings">
+    <div class="section-header"><span class="num">9</span><h2>Settings &amp; Billing</h2></div>
+
+    <h3>Profile Settings</h3>
+    <ul>
+      <li><strong>Name</strong> — update your display name</li>
+      <li><strong>Avatar URL</strong> — paste a URL to a custom avatar image</li>
+      <li><strong>Email</strong> — shown but read-only (change not implemented in demo)</li>
+      <li>Click <strong>"Save Changes"</strong> to update your profile</li>
+    </ul>
+
+    <h3>Subscription &amp; Usage</h3>
+    <p>The subscription card shows your current plan and usage meters:</p>
+    <ul>
+      <li><strong>Bandwidth</strong> — used GB / limit GB (progress bar)</li>
+      <li><strong>Stream Hours</strong> — used hours / limit hours (progress bar)</li>
+      <li><strong>Storage</strong> — used GB / limit GB (progress bar)</li>
+    </ul>
+
+    <h3>Plans &amp; Pricing</h3>
+    <p>Four plans are available. Click <strong>"Upgrade"</strong> to switch, or <strong>"Downgrade"</strong> if you're on a higher plan:</p>
+    <div class="setting-grid">
+      <div class="setting-item"><div class="label"><span class="badge badge-blue">Starter</span></div><div class="value">$0/mo</div><div class="desc">50 GB bandwidth, 20 hrs streaming, 10 GB storage</div></div>
+      <div class="setting-item"><div class="label"><span class="badge badge-purple">Pro</span></div><div class="value">$49/mo</div><div class="desc">500 GB bandwidth, 100 hrs streaming, 100 GB storage</div></div>
+      <div class="setting-item"><div class="label"><span class="badge badge-orange">Business</span></div><div class="value">$149/mo</div><div class="desc">2 TB bandwidth, 500 hrs streaming, 500 GB storage</div></div>
+      <div class="setting-item"><div class="label"><span class="badge badge-green">Enterprise</span></div><div class="value">$499/mo</div><div class="desc">10 TB bandwidth, unlimited streaming, 2 TB storage</div></div>
+    </div>
+  </section>
+
+  <!-- 10. SRT LATENCY PRESETS -->
+  <section id="srt-latency">
+    <div class="section-header"><span class="num">10</span><h2>SRT Latency Presets Reference</h2></div>
+
+    <p>SRT latency controls the buffer size for error correction. Lower latency = less delay but less tolerance for network issues. Higher latency = more delay but better reliability.</p>
+
+    <table class="preset-table">
+      <thead>
+        <tr><th>Preset</th><th>Value</th><th>Use Case</th><th>Network Requirement</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-red">Ultra Low</span></td><td>50ms</td><td>LAN / wired studio</td><td>&lt;1ms jitter, 0% packet loss</td></tr>
+        <tr><td><span class="badge badge-orange">Low</span></td><td>60ms</td><td>Stable WiFi / local</td><td>&lt;5ms jitter, &lt;0.1% loss</td></tr>
+        <tr><td><span class="badge badge-blue">Standard</span></td><td>90ms</td><td>Recommended for most</td><td>&lt;10ms jitter, &lt;0.5% loss</td></tr>
+        <tr><td><span class="badge badge-blue">Balanced</span></td><td>120ms</td><td>Default / safe choice</td><td>&lt;20ms jitter, &lt;1% loss</td></tr>
+        <tr><td><span class="badge badge-purple">High Reliability</span></td><td>200ms</td><td>Cellular / 4G</td><td>&lt;50ms jitter, &lt;2% loss</td></tr>
+        <tr><td><span class="badge badge-purple">Max Buffer</span></td><td>500ms</td><td>Unstable connections</td><td>&lt;100ms jitter, &lt;5% loss</td></tr>
+        <tr><td><span class="badge badge-green">Custom</span></td><td>20–8000ms</td><td>Manual tuning</td><td>Varies based on value</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Choosing the Right Latency</h3>
+    <ul>
+      <li><strong>50ms–60ms</strong> — Only use if you have a wired studio setup with guaranteed bandwidth. Great for two-way communication (interviews, esports commentary).</li>
+      <li><strong>90ms</strong> — The sweet spot for most streaming. Low enough for real-time interaction, high enough to handle minor network glitches.</li>
+      <li><strong>120ms</strong> — The default SRT latency. Reliable for WiFi streaming. Good balance of delay vs. stability.</li>
+      <li><strong>200ms–500ms</strong> — For cellular bonding or unreliable networks. Higher latency gives the SRT protocol more time to retransmit lost packets.</li>
+      <li><strong>Custom</strong> — Use when you know your network's exact characteristics. Set it to match your worst-case RTT + jitter * 3.</li>
+    </ul>
+
+    <div class="info-box">
+      <p><strong>Formula:</strong> SRT Latency ≥ (Round Trip Time × 2) + (Jitter × 3). For example, if your RTT is 30ms and jitter is 10ms: minimum latency = 60 + 30 = <strong>90ms</strong>.</p>
+    </div>
+  </section>
+
+  <!-- 11. FAQ -->
+  <section id="faq">
+    <div class="section-header"><span class="num">11</span><h2>Frequently Asked Questions</h2></div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">What is SRT?</h3>
+      <p>SRT (Secure Reliable Transport) is an open-source video transport protocol that delivers high-quality video over unpredictable networks. It uses packet retransmission, end-to-end encryption, and adaptive bitrate to maintain stream quality even with packet loss up to 50%.</p>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">What is SRTLA?</h3>
+      <p>SRTLA (SRT Link Aggregation) bonds multiple internet connections together. Instead of relying on a single network, SRTLA uses all available connections simultaneously (Aggregate), duplicates data for redundancy (Broadcast), or switches on failure (Failover).</p>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">How do I connect OBS to StreamCast?</h3>
+      <p>After creating a stream, click <strong>"Copy Key"</strong> to get the ingest URL and stream key. In OBS: Settings → Stream → Service = Custom → Server = [ingest URL] → Stream Key = [your key]. For SRT, use the SRT URL format: <span class="key-kbd">srt://localhost:3000?streamid=your-stream-id</span>.</p>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">Why are viewer numbers simulated?</h3>
+      <p>This is a demo platform. In production, viewer counts would come from CDN analytics (CloudFront, Mux, etc.) or from each destination platform's API. The simulation shows how the dashboard would look with real data.</p>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">How does multistream work?</h3>
+      <p>Multistream takes your single video feed and sends it to multiple platforms simultaneously. StreamCast would transcode the video once and then forward copies to YouTube, Twitch, Facebook, etc. This saves bandwidth on your upload since you only send one stream to StreamCast.</p>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">What is the difference between RTMP and SRT?</h3>
+      <ul>
+        <li><strong>RTMP</strong> — older protocol (Adobe Flash era). Low latency but no error correction. Breaks easily with packet loss.</li>
+        <li><strong>SRT</strong> — modern protocol. Built-in encryption, error correction, adaptive to network conditions. Works over any network (including cellular).</li>
+      </ul>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">Can I use my own domain?</h3>
+      <p>This demo runs on localhost. In production, StreamCast would be deployed to a VPS or cloud provider with a custom domain and SSL certificate.</p>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">How is my data protected?</h3>
+      <ul>
+        <li>Passwords are hashed with bcrypt (10 salt rounds)</li>
+        <li>API calls use JWT tokens (expire after 7 days)</li>
+        <li>SRT streams can be encrypted with AES-128 or AES-256</li>
+        <li>All connections go through your local server</li>
+      </ul>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">What if I forget my password?</h3>
+      <p>The demo has no password reset flow. Since this is a local demo, you can create a new account or use the demo credentials. In production, a "Forgot Password" flow with email reset would be implemented.</p>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin:0 0 4px;">What is the technology stack?</h3>
+      <p>Backend: Node.js, Express, Socket.IO, sql.js (SQLite), bcryptjs, JWT. Frontend: Vanilla JS SPA, HLS.js, Canvas API (no chart libraries). Styling: Custom CSS with dark theme, glassmorphism, Inter font.</p>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer-guide">
+  StreamCast v1.0.0 &nbsp;·&nbsp; <a href="/dashboard.html">Dashboard</a> &nbsp;·&nbsp; <a href="/login.html">Login</a> &nbsp;·&nbsp; <a href="/signup.html">Sign Up</a>
+</footer>
+
+</body>
+</html>
