@@ -42,27 +42,22 @@ function startNms() {
 
   nms = new NodeMediaServer(config);
 
-  nms.on('preConnect', (id, args) => {
-    console.log(`[NMS] Incoming connection: ${id}`);
-    return true;
+  nms.on('postPlay', (session) => {
+    console.log(`[NMS] Client connected: ${session.id}`);
   });
 
-  nms.on('postConnect', (id, args) => {
-    console.log(`[NMS] Client connected: ${id}`);
+  nms.on('donePlay', (session) => {
+    console.log(`[NMS] Client disconnected: ${session.id}`);
   });
 
-  nms.on('doneConnect', (id, args) => {
-    console.log(`[NMS] Client disconnected: ${id}`);
-  });
-
-  nms.on('prePublish', (id, StreamPath, args) => {
-    const streamKey = StreamPath.replace('/live/', '');
+  nms.on('prePublish', (session) => {
+    const streamKey = session.streamPath.replace('/live/', '');
     console.log(`[NMS] Stream publishing: ${streamKey}`);
     return true;
   });
 
-  nms.on('postPublish', (id, StreamPath, args) => {
-    const streamKey = StreamPath.replace('/live/', '');
+  nms.on('postPublish', (session) => {
+    const streamKey = session.streamPath.replace('/live/', '');
     console.log(`[NMS] Stream started: ${streamKey}`);
 
     const db = getDb();
@@ -86,8 +81,8 @@ function startNms() {
     }
   });
 
-  nms.on('donePublish', (id, StreamPath, args) => {
-    const streamKey = StreamPath.replace('/live/', '');
+  nms.on('donePublish', (session) => {
+    const streamKey = session.streamPath.replace('/live/', '');
     console.log(`[NMS] Stream stopped: ${streamKey}`);
 
     activeStreams.delete(streamKey);
