@@ -37,6 +37,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/live', express.static(path.join(__dirname, 'media', 'live')));
 
 // Middleware that rejects API requests with 503 while the database is still
 // initializing. /api/health is intentionally excluded so load balancers and

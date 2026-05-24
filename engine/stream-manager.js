@@ -4,12 +4,11 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/init');
 const restreamManager = require('./restream-manager');
+const hlsRelay = require('./hls-relay');
 
 let nms = null;
 let ioInstance = null;
 const activeStreams = new Map();
-
-const HLS_DIR = path.join(__dirname, '..', 'media', 'live');
 
 function setIo(io) {
   ioInstance = io;
@@ -18,11 +17,6 @@ function setIo(io) {
 function startNms() {
   if (nms) return nms;
 
-  if (!fs.existsSync(HLS_DIR)) {
-    fs.mkdirSync(HLS_DIR, { recursive: true });
-  }
-
-  const mediaroot = path.join(__dirname, '..', 'media');
   const config = {
     rtmp: {
       port: 1935,
@@ -33,12 +27,7 @@ function startNms() {
     },
     http: {
       port: 8001,
-      mediaroot,
       allow_origin: '*'
-    },
-    hls: {
-      mediaroot,
-      path: '/live'
     },
     trans: {
       ffmpeg: '',
@@ -75,6 +64,7 @@ function startNms() {
       activeStreams.set(streamKey, { streamId: stream.id, startTime: Date.now() });
 
       restreamManager.startRestreamsForStream(stream.id, streamKey);
+      hlsRelay.startHlsRelay(streamKey);
 
       if (ioInstance) {
         ioInstance.of('/stream-monitor').emit('stream:started', {
@@ -95,6 +85,7 @@ function startNms() {
 
     const entry = activeStreams.get(streamKey);
     if (entry) restreamManager.stopRestreamsForStream(entry.streamId);
+    hlsRelay.stopHlsRelay(streamKey);
     activeStreams.delete(streamKey);
 
     const db = getDb();
