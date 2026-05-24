@@ -161,13 +161,32 @@ function updateEmbedPreview() {
   const preview = document.getElementById('embed-player-area');
   if (!streamId) {
     output.textContent = '<!-- Select a stream -->';
+    preview.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;height:100%;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <span style="color:var(--text-muted);font-size:0.85rem;">Select a stream to preview</span>
+      </div>`;
     return;
   }
   const autoplay = document.getElementById('embed-autoplay').value === '1';
   const mute = document.getElementById('embed-mute').value === '1';
   const theme = document.getElementById('embed-theme').value;
+  const stream = streamMap[streamId];
+  const hlsUrl = stream ? stream.hls_url : `/live/${streamId}/index.m3u8`;
+  const absHlsUrl = window.location.origin + hlsUrl;
   preview.innerHTML = `
-    <video id="embed-video-preview" controls style="width:100%;height:100%;object-fit:contain;background:#000;" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='400' height='225' fill='%231a1a35'/%3E%3Ctext x='200' y='115' text-anchor='middle' fill='%236b6b80' font-family='Inter' font-size='18'%3E${select.options[select.selectedIndex].text}%3C/text%3E%3C/svg%3E"></video>`;
+    <video id="embed-video-preview" controls style="width:100%;height:100%;object-fit:contain;background:#000;" ${autoplay ? 'autoplay' : ''} ${mute ? 'muted' : ''}></video>`;
+  const video = document.getElementById('embed-video-preview');
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(absHlsUrl);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}); });
+    hlsInstances.push(hls);
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = absHlsUrl;
+    video.addEventListener('loadedmetadata', () => { video.play().catch(() => {}); });
+  }
   const code = `<iframe src="${window.location.origin}/embed/${streamId}?autoplay=${autoplay ? 1 : 0}&mute=${mute ? 1 : 0}&theme=${theme}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="aspect-ratio:16/9;border-radius:8px;"></iframe>`;
   output.textContent = code;
 }

@@ -55,13 +55,25 @@ router.get('/', (req, res) => {
 // Creates a new stream with auto-generated stream key, RTMP URL, and SRT URL.
 router.post('/', (req, res) => {
   try {
-    const { name, description, region, srt_latency, recording_enabled } = req.body;
+    const { name, description, region, srt_latency, protocol, srt_overhead, srt_encryption, recording_enabled } = req.body;
 
     if (!name) {
       return res.status(400).json({
         error: 'Validation failed',
         message: 'Stream name is required.'
       });
+    }
+
+    if (name.length > 100) {
+      return res.status(400).json({ error: 'Validation failed', message: 'Stream name must be under 100 characters.' });
+    }
+
+    const validProtocols = ['rtmp', 'srt', 'whip'];
+    const ingestProtocol = protocol && validProtocols.includes(protocol) ? protocol : 'rtmp';
+
+    const latencyVal = parseInt(srt_latency) || 120;
+    if (latencyVal < 20 || latencyVal > 8000) {
+      return res.status(400).json({ error: 'Validation failed', message: 'SRT latency must be between 20ms and 8000ms.' });
     }
 
     const db = getDb();
@@ -74,20 +86,23 @@ router.post('/', (req, res) => {
     const hlsUrl = `/live/${streamKey}/index.m3u8`;
 
     db.prepare(`
-      INSERT INTO streams (id, user_id, name, description, stream_key, rtmp_url, srt_url, srt_latency, status, region, recording_enabled)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'offline', ?, ?)
+      INSERT INTO streams (id, user_id, name, description, stream_key, rtmp_url, srt_url, srt_latency, protocol, srt_overhead, srt_encryption, status, region, recording_enabled)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline', ?, ?)
     `    ).run(
       id, req.user.id, name, description || '', streamKey, rtmpUrl, srtUrl,
-      srt_latency || 120, region || 'us-east', recording_enabled ? 1 : 0
+      latencyVal, ingestProtocol, srt_overhead || 25, srt_encryption || 'none',
+      region || 'us-east', recording_enabled ? 1 : 0
     );
 
-    srtRelay.startRelayForStream(streamKey, srtPort);
+    if (ingestProtocol === 'srt') {
+      srtRelay.startRelayForStream(streamKey, srtPort);
+    }
 
     const stream = db.prepare('SELECT * FROM streams WHERE id = ?').get(id);
     stream.hls_url = hlsUrl;
     stream.ingest_url = `rtmp://${host.replace(/:.*$/, '')}:1935/live/${streamKey}`;
 
-    console.log(`[Streams] Created stream "${name}" (${id}) for user ${req.user.id}`);
+    console.log(`[Streams] Created stream "${name}" (${id}) protocol=${ingestProtocol} for user ${req.user.id}`);
 
     res.status(201).json({
       message: 'Stream created successfully',
@@ -146,11 +161,23 @@ router.put('/:id', (req, res) => {
     const updates = [];
     const params = [];
 
-    if (name !== undefined) { updates.push('name = ?'); params.push(name); }
+    if (name !== undefined) {
+      if (name.length > 100) return res.status(400).json({ error: 'Validation failed', message: 'Name must be under 100 characters.' });
+      updates.push('name = ?'); params.push(name);
+    }
     if (description !== undefined) { updates.push('description = ?'); params.push(description); }
     if (region !== undefined) { updates.push('region = ?'); params.push(region); }
-    if (srt_latency !== undefined) { updates.push('srt_latency = ?'); params.push(srt_latency); }
+    if (srt_latency !== undefined) {
+      const v = parseInt(srt_latency);
+      if (v < 20 || v > 8000) return res.status(400).json({ error: 'Validation failed', message: 'SRT latency must be between 20ms and 8000ms.' });
+      updates.push('srt_latency = ?'); params.push(v);
+    }
     if (recording_enabled !== undefined) { updates.push('recording_enabled = ?'); params.push(recording_enabled ? 1 : 0); }
+    if (req.body.protocol !== undefined) {
+      const validProtocols = ['rtmp', 'srt', 'whip'];
+      if (!validProtocols.includes(req.body.protocol)) return res.status(400).json({ error: 'Validation failed', message: `Protocol must be one of: ${validProtocols.join(', ')}` });
+      updates.push('protocol = ?'); params.push(req.body.protocol);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No updates provided' });
@@ -201,8 +228,8 @@ router.delete('/:id', (req, res) => {
 });
 
 // ─── POST /:id/start ────────────────────────────────────────────────────────────
-// Sets a stream's status to 'live' and starts health simulation.
-// Broadcasts the event via Socket.IO to all connected monitoring clients.
+// Sets a stream's status to 'live', starts an analytics event poller,
+// and enables any protocol-specific relays (SRT).
 router.post('/:id/start', (req, res) => {
   try {
     const db = getDb();
@@ -214,6 +241,15 @@ router.post('/:id/start', (req, res) => {
 
     if (stream.status === 'live') {
       return res.status(400).json({ error: 'Stream is already live' });
+    }
+
+    // If protocol is SRT, ensure the relay is running
+    if (stream.protocol === 'srt' || stream.protocol === undefined) {
+      const existing = srtRelay.getPortForStream(stream.stream_key);
+      if (!existing) {
+        const port = srtRelay.getNextPort() || 9000;
+        srtRelay.startRelayForStream(stream.stream_key, port);
+      }
     }
 
     // Update status to live
@@ -232,7 +268,7 @@ router.post('/:id/start', (req, res) => {
       });
     }
 
-    console.log(`[Streams] Stream "${stream.name}" is now LIVE`);
+    console.log(`[Streams] Stream "${stream.name}" is now LIVE (protocol=${stream.protocol || 'rtmp'})`);
 
     res.json({
       message: 'Stream started successfully',

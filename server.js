@@ -5,7 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-const { initDb, isDbReady } = require('./db/init');
+const { getDb, initDb, isDbReady } = require('./db/init');
 const streamManager = require('./engine/stream-manager');
 const srtlaManager = require('./engine/srtla-manager');
 const srtRelay = require('./engine/srt-relay');
@@ -93,39 +93,48 @@ streamMonitorNs.on('connection', (socket) => {
 const srtlaMonitorNs = io.of('/srtla-monitor');
 srtlaMonitorNs.on('connection', (socket) => {
   console.log(`[SRTLA Monitor] Client connected: ${socket.id}`);
-  const interfaces = [
-    { name: 'Cellular 5G', type: 'cellular' },
-    { name: 'WiFi 6', type: 'wifi' },
-    { name: 'Ethernet', type: 'ethernet' }
-  ];
-  const bondInterval = setInterval(() => {
-    const bondStats = {
-      bondId: 'sim-bond-001',
-      mode: 'aggregate',
-      totalThroughput: 0,
-      interfaces: interfaces.map((iface) => {
-        const throughput = parseFloat((1 + Math.random() * 49).toFixed(2));
-        const latency = parseFloat((5 + Math.random() * 195).toFixed(1));
-        const packetLoss = parseFloat((Math.random() * 5).toFixed(2));
-        return {
-          name: iface.name,
-          type: iface.type,
-          throughput, latency, packetLoss,
-          packetsSent: Math.floor(10000 + Math.random() * 50000),
-          packetsReceived: Math.floor(9800 + Math.random() * 49500),
-          jitter: parseFloat((0.5 + Math.random() * 10).toFixed(2)),
-          status: Math.random() > 0.05 ? 'active' : 'degraded'
-        };
-      }),
-      timestamp: new Date().toISOString()
-    };
-    bondStats.totalThroughput = parseFloat(
-      bondStats.interfaces.reduce((sum, iface) => sum + iface.throughput, 0).toFixed(2)
-    );
-    socket.emit('srtla:bond-stats', bondStats);
-  }, 1000);
+  let bondInterval = null;
+  socket.on('srtla:join', ({ bondId }) => {
+    if (bondInterval) clearInterval(bondInterval);
+    bondInterval = setInterval(() => {
+      try {
+        const db = getDb();
+        if (!db) return;
+        const bond = db.prepare(`
+          SELECT b.* FROM srtla_bonds b WHERE b.id = ?
+        `).get(bondId);
+        if (!bond) return;
+        const interfaces = db.prepare(
+          'SELECT * FROM srtla_interfaces WHERE bond_id = ? ORDER BY priority ASC'
+        ).all(bondId);
+        const totalThroughput = interfaces.reduce((sum, iface) => sum + (iface.throughput || 0), 0);
+        socket.emit('srtla:bond-stats', {
+          bondId,
+          mode: bond.mode,
+          totalThroughput: parseFloat(totalThroughput.toFixed(2)),
+          srtLatency: bond.srt_latency || 120,
+          interfaces: interfaces.map(iface => ({
+            name: iface.name,
+            type: iface.type,
+            throughput: iface.throughput || 0,
+            latency: iface.latency || 0,
+            packetLoss: iface.packet_loss || 0,
+            packetsSent: iface.packets_sent || 0,
+            packetsReceived: iface.packets_received || 0,
+            jitter: iface.jitter || 0,
+            priority: iface.priority,
+            status: iface.status || 'idle',
+            enabled: !!iface.enabled
+          })),
+          timestamp: new Date().toISOString()
+        });
+      } catch (e) {
+        // bond not found or DB not ready
+      }
+    }, 2000);
+  });
   socket.on('disconnect', () => {
-    clearInterval(bondInterval);
+    if (bondInterval) clearInterval(bondInterval);
   });
 });
 
@@ -138,18 +147,31 @@ livePreviewNs.on('connection', (socket) => {
     currentStreamId = streamId;
     if (previewInterval) clearInterval(previewInterval);
     previewInterval = setInterval(() => {
-      if (currentStreamId) {
+      if (!currentStreamId) return;
+      try {
+        const db = getDb();
+        if (!db) return;
+        const stream = db.prepare('SELECT * FROM streams WHERE id = ?').get(currentStreamId);
+        if (!stream) return;
+        const latest = db.prepare(`
+          SELECT viewer_count, bitrate, fps, bandwidth, timestamp
+          FROM analytics_events WHERE stream_id = ? ORDER BY timestamp DESC LIMIT 1
+        `).get(currentStreamId);
+        const isLive = stream.status === 'live';
         socket.emit('preview:health', {
           streamId: currentStreamId,
-          bitrate: Math.floor(2500 + Math.random() * 3500),
-          fps: Math.random() > 0.3 ? 60 : 30,
-          viewers: Math.floor(10 + Math.random() * 300),
-          srtLatency: Math.random() > 0.5 ? 90 : 120,
+          bitrate: latest ? latest.bitrate : 0,
+          fps: latest ? latest.fps : 0,
+          viewers: latest ? latest.viewer_count : 0,
+          srtLatency: stream.srt_latency || 120,
           resolution: '1920x1080',
           codec: 'H.264',
-          droppedFrames: Math.floor(Math.random() * 3),
+          droppedFrames: 0,
+          status: isLive ? 'live' : 'offline',
           timestamp: new Date().toISOString()
         });
+      } catch (e) {
+        // stream not found or DB not ready
       }
     }, 2000);
   });

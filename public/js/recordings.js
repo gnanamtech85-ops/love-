@@ -61,7 +61,24 @@ function formatSize(bytes) {
 }
 
 function playRecording(id) {
-  showToast('Playback: ' + id, 'info');
+  const videoUrl = `/api/recordings/${id}/download`;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.display = 'flex';
+  overlay.id = 'recording-player-overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:800px;">
+      <div class="modal-header">
+        <h2>Recording Playback</h2>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding:0;">
+        <video controls style="width:100%;max-height:70vh;display:block;background:#000;" src="${videoUrl}"></video>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
 }
 
 async function deleteRecording(id) {

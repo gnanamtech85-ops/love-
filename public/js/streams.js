@@ -58,6 +58,7 @@ async function loadStreams(area) {
             <div class="stream-card-meta">
               <span>📍 ${s.region || 'us-east'}</span>
               <span>🔑 ${s.stream_key ? s.stream_key.substring(0, 8) + '...' : ''}</span>
+              <span>📡 ${s.protocol || 'rtmp'}</span>
             </div>
             <div class="stream-card-actions">
               ${isLive ? `<button class="btn-sm live-btn" onclick="stopStream('${s.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop</button>`
@@ -81,6 +82,7 @@ async function createStream() {
   const srtLatency = selectedLatency.modal === 'custom'
     ? parseInt(document.getElementById('modal-custom-latency-value').value) || 120
     : parseInt(selectedLatency.modal);
+  const protocol = document.getElementById('new-stream-protocol').value;
   try {
     await api('/streams', {
       method: 'POST',
@@ -88,7 +90,10 @@ async function createStream() {
         name,
         description: document.getElementById('new-stream-desc').value.trim(),
         region: document.getElementById('new-stream-region').value,
+        protocol,
         srt_latency: srtLatency,
+        srt_overhead: 25,
+        srt_encryption: 'none',
         recording_enabled: document.getElementById('new-stream-recording').checked
       })
     });
@@ -102,9 +107,9 @@ async function createStream() {
 
 async function startStream(id) {
   try {
+    await api(`/streams/${id}/start`, { method: 'POST' });
     const data = await api(`/streams/${id}`);
-    const s = data.stream;
-    showIngestInfo(s);
+    showIngestInfo(data.stream);
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -220,6 +225,7 @@ async function showStreamDetail(id) {
           <div style="margin-top:12px;display:flex;gap:16px;font-size:0.85rem;color:var(--text-secondary);">
             <span>Status: <strong style="color:${s.status === 'live' ? 'var(--accent-green)' : 'var(--text-muted)'}">${s.status}</strong></span>
             <span>Region: <strong>${s.region}</strong></span>
+            <span>Protocol: <strong>${(s.protocol || 'rtmp').toUpperCase()}</strong></span>
             <span>SRT Latency: <strong>${s.srt_latency}ms</strong></span>
           </div>
         </div>

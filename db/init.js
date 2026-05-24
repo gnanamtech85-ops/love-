@@ -69,13 +69,25 @@ async function initDb() {
   await database.exec(`
     CREATE TABLE IF NOT EXISTS srtla_interfaces (
       id TEXT PRIMARY KEY, bond_id TEXT NOT NULL, name TEXT NOT NULL,
-      type TEXT DEFAULT 'ethernet' CHECK(type IN ('cellular','wifi','ethernet','vpn')),
-      ip_address TEXT DEFAULT '', port INTEGER DEFAULT 0, priority INTEGER DEFAULT 1,
-      enabled INTEGER DEFAULT 1, status TEXT DEFAULT 'idle',
-      created_at TEXT DEFAULT (datetime('now')),
+      type TEXT CHECK(type IN ('cellular','wifi','ethernet','vpn')),
+      ip_address TEXT DEFAULT '', port INTEGER DEFAULT 0,
+      priority INTEGER DEFAULT 1, enabled INTEGER DEFAULT 1,
+      status TEXT DEFAULT 'idle',
+      created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (bond_id) REFERENCES srtla_bonds(id) ON DELETE CASCADE
     );
   `);
+  try { await database.exec(`ALTER TABLE streams ADD COLUMN protocol TEXT DEFAULT 'rtmp'`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE streams ADD COLUMN srt_overhead INTEGER DEFAULT 25`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE streams ADD COLUMN srt_encryption TEXT DEFAULT 'none'`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE streams ADD COLUMN max_bandwidth INTEGER DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN throughput REAL DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN latency REAL DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN packet_loss REAL DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN packets_sent INTEGER DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN packets_received INTEGER DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN jitter REAL DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE recordings ADD COLUMN file_path TEXT DEFAULT ''`); } catch (e) {}
   await database.exec(`
     CREATE TABLE IF NOT EXISTS recordings (
       id TEXT PRIMARY KEY, stream_id TEXT NOT NULL, filename TEXT NOT NULL,

@@ -68,6 +68,9 @@ async function loadSrtla(area) {
 function setupSrtlaSocket(bondIds) {
   if (srtlaSocket) { srtlaSocket.close(); }
   srtlaSocket = io('/srtla-monitor');
+  bondIds.forEach(bondId => {
+    srtlaSocket.emit('srtla:join', { bondId });
+  });
   srtlaSocket.on('srtla:bond-stats', (stats) => {
     const el = document.getElementById(`bond-interfaces-${stats.bondId}`);
     const totalEl = document.getElementById(`bond-total-${stats.bondId}`);
@@ -95,7 +98,7 @@ function setupSrtlaSocket(bondIds) {
         </div>
       </div>
     `).join('');
-    if (totalEl) totalEl.textContent = `${stats.totalThroughput} Mbps`;
+    if (totalEl) totalEl.textContent = stats.srtLatency ? `${stats.srtLatency}ms latency` : `${stats.totalThroughput} Mbps`;
   });
 }
 
