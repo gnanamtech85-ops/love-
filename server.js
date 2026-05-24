@@ -8,6 +8,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const { initDb, isDbReady } = require('./db/init');
 const streamManager = require('./engine/stream-manager');
 const srtlaManager = require('./engine/srtla-manager');
+const srtRelay = require('./engine/srt-relay');
 
 const authRoutes = require('./routes/auth');
 const streamRoutes = require('./routes/streams');
@@ -69,6 +70,16 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });
+});
+
+app.get('/api/srt-relay', (req, res) => {
+  res.json({ relays: srtRelay.getRelays() });
+});
+
+app.post('/api/srt-relay/restart', requireDbReady, (req, res) => {
+  srtRelay.stopAll();
+  srtRelay.startAll();
+  res.json({ status: 'ok', relays: srtRelay.getRelays() });
 });
 
 const streamMonitorNs = io.of('/stream-monitor');
@@ -184,6 +195,7 @@ async function start() {
   console.log('═══════════════════════════════════════════════════════');
 
   streamManager.startNms();
+  srtRelay.setIo(io);
 
   // Start listening immediately so the process is reachable for health checks
   // and load-balancer probes before the database finishes initializing.
@@ -210,6 +222,7 @@ async function start() {
   try {
     await initDb();
     console.log('[Init] Database initialized successfully. All API routes are now active.');
+    srtRelay.startAll();
   } catch (err) {
     console.error('[Fatal] Database initialization failed:', err.message);
     process.exit(1);

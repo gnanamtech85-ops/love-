@@ -246,7 +246,20 @@ function copyText(elId) {
   const el = document.getElementById(elId);
   if (!el) return;
   const text = el.textContent || el.innerText;
-  navigator.clipboard.writeText(text).then(() => showToast('Copied!')).catch(() => {});
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('Copied!')).catch(fallbackCopy);
+  } else {
+    fallbackCopy(text);
+  }
+  function fallbackCopy(val) {
+    const ta = document.createElement('textarea');
+    ta.value = val;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('Copied!'); } catch (e) { showToast('Failed to copy', 'error'); }
+    document.body.removeChild(ta);
+  }
 }
 
 function openCreateStreamModal() {

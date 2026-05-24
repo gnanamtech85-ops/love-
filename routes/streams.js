@@ -19,6 +19,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/init');
 const authMiddleware = require('../middleware/auth');
+const srtRelay = require('../engine/srt-relay');
 
 const router = express.Router();
 
@@ -68,7 +69,8 @@ router.post('/', (req, res) => {
     const streamKey = uuidv4();
     const host = req.headers.host || 'localhost:3000';
     const rtmpUrl = `rtmp://${host.replace(/:.*$/, '')}:1935/live/${streamKey}`;
-    const srtUrl = `srt://${host.replace(/:.*$/, '')}:9000?streamid=${streamKey}`;
+    const srtPort = srtRelay.getPortForStream(streamKey) || srtRelay.getNextPort() || 9000;
+    const srtUrl = `srt://${host.replace(/:.*$/, '')}:${srtPort}?streamid=${streamKey}`;
     const hlsUrl = `/live/${streamKey}/index.m3u8`;
 
     db.prepare(`
@@ -78,6 +80,8 @@ router.post('/', (req, res) => {
       id, req.user.id, name, description || '', streamKey, rtmpUrl, srtUrl,
       srt_latency || 120, region || 'us-east', recording_enabled ? 1 : 0
     );
+
+    srtRelay.startRelayForStream(streamKey, srtPort);
 
     const stream = db.prepare('SELECT * FROM streams WHERE id = ?').get(id);
     stream.hls_url = hlsUrl;
@@ -184,6 +188,8 @@ router.delete('/:id', (req, res) => {
     db.prepare('DELETE FROM recordings WHERE stream_id = ?').run(req.params.id);
     db.prepare('DELETE FROM analytics_events WHERE stream_id = ?').run(req.params.id);
     db.prepare('DELETE FROM streams WHERE id = ?').run(req.params.id);
+
+    srtRelay.stopRelayForStream(stream.stream_key);
 
     console.log(`[Streams] Deleted stream "${stream.name}" (${req.params.id})`);
 
