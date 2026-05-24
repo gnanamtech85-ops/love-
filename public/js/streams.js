@@ -39,7 +39,6 @@ async function loadStreams(area) {
     html += '<div class="stream-grid">';
     for (const s of streams) {
       const isLive = s.status === 'live';
-      const stats = s.stats || {};
       html += `
         <div class="stream-card">
           <div class="stream-card-preview">
@@ -61,8 +60,10 @@ async function loadStreams(area) {
               <span>📡 ${s.protocol || 'rtmp'}</span>
             </div>
             <div class="stream-card-actions">
-              ${isLive ? `<button class="btn-sm live-btn" onclick="stopStream('${s.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop</button>`
-                       : `<button class="btn-sm go-live" onclick="startStream('${s.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Go Live</button>`}
+              ${isLive
+                ? `<button class="btn-sm live-btn" onclick="stopStream('${s.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop</button>
+                   <button class="btn-sm" onclick="openLivePreview('${s.id}','${s.name.replace(/'/g,"\\'")}','${s.stream_key}')">▶ Preview</button>`
+                : `<button class="btn-sm go-live" onclick="showGoLiveModal('${s.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Go Live</button>`}
               <button class="btn-sm" onclick="showStreamDetail('${s.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>Details</button>
               <button class="btn-sm" onclick="deleteStream('${s.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
             </div>
@@ -105,9 +106,9 @@ async function createStream() {
   }
 }
 
-async function startStream(id) {
+// Shows the ingest info modal first — user connects OBS, then clicks "Mark as Live"
+async function showGoLiveModal(id) {
   try {
-    await api(`/streams/${id}/start`, { method: 'POST' });
     const data = await api(`/streams/${id}`);
     showIngestInfo(data.stream);
   } catch (err) {
@@ -117,26 +118,38 @@ async function startStream(id) {
 
 function showIngestInfo(s) {
   const protocol = s.protocol || 'rtmp';
+  // Build the real server host (use server hostname with port 1935 for RTMP)
+  const serverHost = window.location.hostname;
+  const rtmpUrl = `rtmp://${serverHost}:1935/live`;
+  const ingestUrl = protocol === 'srt' ? (s.srt_url || `srt://${serverHost}:9000?streamid=${s.stream_key}`) : rtmpUrl;
+  const hlsUrl = `http://${serverHost}:${window.location.port || 3000}/live/${s.stream_key}/index.m3u8`;
+
+  // Remove any existing overlay
+  const existing = document.getElementById('ingest-info-overlay');
+  if (existing) existing.remove();
+
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.style.display = 'flex';
   overlay.id = 'ingest-info-overlay';
   overlay.innerHTML = `
-    <div class="modal" style="max-width:520px;">
+    <div class="modal" style="max-width:560px;">
       <div class="modal-header">
-        <h2>🎬 Connect to Stream</h2>
-        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+        <h2>🎬 Connect OBS to Go Live</h2>
+        <button class="modal-close" onclick="document.getElementById('ingest-info-overlay').remove()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div class="modal-body">
-        <div class="info-box-success" style="margin-bottom:16px;padding:12px;background:rgba(16,185,129,0.08);border-radius:var(--radius-sm);border-left:3px solid var(--accent-green);font-size:0.85rem;">
-          Point your encoder to the ${protocol.toUpperCase()} URL below. The stream will auto-detect when you start broadcasting.
+        <div style="padding:12px;background:rgba(16,185,129,0.08);border-radius:var(--radius-sm);border-left:3px solid var(--accent-green);font-size:0.85rem;margin-bottom:16px;">
+          <strong>Step 1:</strong> Copy the settings below into OBS.<br>
+          <strong>Step 2:</strong> Start streaming in OBS — the server will auto-detect it.<br>
+          <strong>Step 3:</strong> Click <strong>"Mark as LIVE"</strong> below after OBS starts streaming.
         </div>
         <div class="form-group">
-          <label class="form-label">${protocol.toUpperCase()} URL</label>
+          <label class="form-label">OBS Server (RTMP URL)</label>
           <div class="stream-key-box">
-            <span class="key-value" id="ingest-rtmp-url">${protocol === 'srt' ? s.srt_url : (s.ingest_url || s.rtmp_url)}</span>
+            <span class="key-value" id="ingest-rtmp-url">${rtmpUrl}</span>
             <button class="key-copy" onclick="copyText('ingest-rtmp-url')">📋</button>
           </div>
         </div>
@@ -147,47 +160,52 @@ function showIngestInfo(s) {
             <button class="key-copy" onclick="copyText('ingest-stream-key')">📋</button>
           </div>
         </div>
-        <div class="form-group" style="margin-top:8px;">
-          <label class="form-label">HLS Playback URL</label>
+        ${protocol === 'srt' ? `
+        <div class="form-group">
+          <label class="form-label">SRT URL (if using SRT)</label>
           <div class="stream-key-box">
-            <span class="key-value" id="ingest-hls-url">${window.location.origin}${s.hls_url}</span>
+            <span class="key-value" id="ingest-srt-url">${ingestUrl}</span>
+            <button class="key-copy" onclick="copyText('ingest-srt-url')">📋</button>
+          </div>
+        </div>` : ''}
+        <div class="form-group">
+          <label class="form-label">HLS Playback URL (for viewers)</label>
+          <div class="stream-key-box">
+            <span class="key-value" id="ingest-hls-url">${hlsUrl}</span>
             <button class="key-copy" onclick="copyText('ingest-hls-url')">📋</button>
           </div>
         </div>
-        <div style="margin-top:16px;padding:16px;background:rgba(45,104,255,0.06);border-radius:var(--radius-sm);font-size:0.85rem;color:var(--text-secondary);">
-          <strong style="color:var(--text-primary);">How to set up in OBS:</strong><br>
-          ${protocol === 'srt' ? `
-          1. Open OBS → Settings → Stream<br>
-          2. Service: <strong>Custom SRT</strong><br>
-          3. Server URL: <strong>${s.srt_url}</strong><br>
-          4. Stream ID: paste the <strong>Stream Key</strong> above<br>
-          5. Click OK → Start Streaming<br>
-          <hr style="margin:8px 0;border-color:var(--border-color);">
-          <em>Alternatively paste the full URL as the server in newer OBS versions.</em>` : `
-          1. Open OBS → Settings → Stream<br>
-          2. Service: <strong>Custom...</strong><br>
-          3. Server: paste the <strong>RTMP URL</strong> above<br>
-          4. Stream Key: paste the <strong>Stream Key</strong> above<br>
-          5. Click OK → Start Streaming`}
+        <div style="margin-top:12px;padding:12px;background:rgba(45,104,255,0.06);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--text-secondary);">
+          <strong style="color:var(--text-primary);">OBS Settings:</strong><br>
+          Settings → Stream → Service: <strong>Custom...</strong><br>
+          Server: <strong>${rtmpUrl}</strong><br>
+          Stream Key: <strong>${s.stream_key}</strong>
         </div>
       </div>
       <div class="modal-footer" style="padding:16px 24px;display:flex;justify-content:flex-end;gap:8px;">
         <button class="btn btn-secondary" onclick="document.getElementById('ingest-info-overlay').remove()">Close</button>
-        <button class="btn btn-primary" onclick="startStreamDirect('${s.id}')">Mark as Live (Manual)</button>
+        <button class="btn btn-primary" id="mark-live-btn" onclick="markStreamLive('${s.id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
+          Mark as LIVE
+        </button>
       </div>
     </div>
   `;
   document.body.appendChild(overlay);
 }
 
-async function startStreamDirect(id) {
+async function markStreamLive(id) {
+  const btn = document.getElementById('mark-live-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Starting...'; }
   try {
     await api(`/streams/${id}/start`, { method: 'POST' });
-    document.getElementById('ingest-info-overlay').remove();
-    showToast('Stream marked as LIVE');
+    const existing = document.getElementById('ingest-info-overlay');
+    if (existing) existing.remove();
+    showToast('🔴 Stream is now LIVE!', 'success');
     navigateTo('streams');
   } catch (err) {
     showToast(err.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Mark as LIVE'; }
   }
 }
 
@@ -216,21 +234,38 @@ async function showStreamDetail(id) {
   try {
     const data = await api(`/streams/${id}`);
     const s = data.stream;
+    const serverHost = window.location.hostname;
+    const serverPort = window.location.port || 3000;
     const area = document.getElementById('content-area');
     area.innerHTML = `
       <div class="page-header">
         <h1>${s.name}</h1>
         <div class="page-header-actions">
           <button class="btn btn-secondary" onclick="navigateTo('streams')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</button>
+          ${s.status === 'live'
+            ? `<button class="btn btn-danger" onclick="stopStream('${s.id}')">⏹ Stop Stream</button>`
+            : `<button class="btn btn-primary" onclick="showGoLiveModal('${s.id}')">🔴 Go Live</button>`}
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
         <div class="srt-config-section">
           <h4 style="margin-bottom:16px;">Stream Info</h4>
-          <div class="stream-key-box"><span class="key-value" id="detail-rtmp">${s.rtmp_url}</span><button class="key-copy" onclick="copyText('detail-rtmp')">📋</button></div>
-          <div style="margin-top:8px;" class="stream-key-box"><span class="key-value" id="detail-srt">${s.srt_url}</span><button class="key-copy" onclick="copyText('detail-srt')">📋</button></div>
-          <div style="margin-top:16px;"><strong>Stream Key:</strong> <span class="text-mono" style="color:var(--accent-teal);font-size:0.85rem;" id="detail-key">${s.stream_key}</span> <button class="key-copy" onclick="copyText('detail-key')">📋</button></div>
-          <div style="margin-top:8px;"><strong>HLS URL:</strong> <span class="text-mono" style="font-size:0.85rem;" id="detail-hls">${window.location.origin}${s.hls_url}</span> <button class="key-copy" onclick="copyText('detail-hls')">📋</button></div>
+          <div style="font-size:0.82rem;margin-bottom:12px;">
+            <label class="form-label">RTMP URL (OBS Server)</label>
+            <div class="stream-key-box"><span class="key-value" id="detail-rtmp">rtmp://${serverHost}:1935/live</span><button class="key-copy" onclick="copyText('detail-rtmp')">📋</button></div>
+          </div>
+          <div style="font-size:0.82rem;margin-bottom:12px;">
+            <label class="form-label">Stream Key</label>
+            <div class="stream-key-box"><span class="key-value" id="detail-key">${s.stream_key}</span><button class="key-copy" onclick="copyText('detail-key')">📋</button></div>
+          </div>
+          <div style="font-size:0.82rem;margin-bottom:12px;">
+            <label class="form-label">SRT URL</label>
+            <div class="stream-key-box"><span class="key-value" id="detail-srt">${s.srt_url}</span><button class="key-copy" onclick="copyText('detail-srt')">📋</button></div>
+          </div>
+          <div style="font-size:0.82rem;margin-bottom:12px;">
+            <label class="form-label">HLS Playback URL (for viewers)</label>
+            <div class="stream-key-box"><span class="key-value" id="detail-hls">http://${serverHost}:${serverPort}/live/${s.stream_key}/index.m3u8</span><button class="key-copy" onclick="copyText('detail-hls')">📋</button></div>
+          </div>
           <div style="margin-top:12px;display:flex;gap:16px;font-size:0.85rem;color:var(--text-secondary);">
             <span>Status: <strong style="color:${s.status === 'live' ? 'var(--accent-green)' : 'var(--text-muted)'}">${s.status}</strong></span>
             <span>Region: <strong>${s.region}</strong></span>
@@ -246,6 +281,7 @@ async function showStreamDetail(id) {
                 <div class="destination-platform-icon" style="background:${d.platform === 'youtube' ? '#FF0000' : d.platform === 'twitch' ? '#9146FF' : d.platform === 'facebook' ? '#1877F2' : d.platform === 'kick' ? '#53FC18' : '#333'};color:${d.platform === 'kick' ? '#000' : '#fff'}">${d.platform_name.substring(0, 2).toUpperCase()}</div>
                 <div class="destination-info"><div class="destination-name">${d.platform_name}</div><div class="destination-url">${d.rtmp_url || d.srt_url || ''}</div></div>
                 <div class="destination-status ${d.status}"></div>
+                <button class="btn btn-sm btn-ghost" onclick="removeDestination('${s.id}','${d.id}')" style="color:var(--accent-red);padding:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
               </div>
             `).join('') || '<div style="color:var(--text-muted);font-size:0.85rem;">No destinations configured</div>'}
           </div>
@@ -322,6 +358,8 @@ async function loadOverview(area) {
     const totalDests = streams.reduce((sum, s) => sum + (s.destination_count || 0), 0);
     const rtmpStreams = streams.filter(s => (s.protocol || 'rtmp') === 'rtmp');
     const srtStreams = streams.filter(s => s.protocol === 'srt');
+    const serverHost = window.location.hostname;
+    const serverPort = window.location.port || 3000;
     area.innerHTML = `
       <div class="page-header"><h1>Overview</h1></div>
       <div class="stats-grid">
@@ -351,14 +389,14 @@ async function loadOverview(area) {
         </div>
       </div>
       <div class="srt-config-section" style="margin-top:24px;">
-        <h4 style="margin-bottom:16px;">Quick Start</h4>
-        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
-          To go live, create a stream, get your RTMP/SRT URL and stream key, then configure OBS to push to your server.
-          Your video will be available via HLS once streaming starts.
+        <h4 style="margin-bottom:16px;">OBS Quick Setup</h4>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">
+          Configure OBS: Settings → Stream → Service: <strong>Custom...</strong>
         </p>
         <p style="font-size:0.85rem;color:var(--text-secondary);">
-          <strong>Server:</strong> ${window.location.hostname}:1935<br>
-          <strong>HLS:</strong> http://${window.location.hostname}:3000/live/STREAM_KEY/index.m3u8
+          <strong>RTMP Server:</strong> rtmp://${serverHost}:1935/live<br>
+          <strong>Stream Key:</strong> (copy from your stream's settings)<br>
+          <strong>HLS Viewer URL:</strong> http://${serverHost}:${serverPort}/live/STREAM_KEY/index.m3u8
         </p>
       </div>
       <div class="srt-config-section" style="margin-top:16px;">
@@ -372,8 +410,9 @@ async function loadOverview(area) {
               </div>
               <div class="destination-status live"></div>
               <button class="btn btn-sm btn-ghost" onclick="openLivePreview('${s.id}','${s.name.replace(/'/g,"\\'")}','${s.stream_key}')">▶ Preview</button>
+              <button class="btn btn-sm btn-ghost" onclick="stopStream('${s.id}')" style="color:var(--accent-red);">⏹ Stop</button>
             </div>
-          `).join('') : '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">No live streams. Create a stream and start streaming from OBS.</div>'}
+          `).join('') : '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">No live streams. Go to Streams → Go Live to start.</div>'}
         </div>
       </div>`;
   } catch (err) {

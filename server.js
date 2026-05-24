@@ -9,6 +9,7 @@ const streamManager = require('./engine/stream-manager');
 const srtlaManager = require('./engine/srtla-manager');
 const srtRelay = require('./engine/srt-relay');
 const restreamManager = require('./engine/restream-manager');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const authRoutes = require('./routes/auth');
 const streamRoutes = require('./routes/streams');
@@ -36,7 +37,22 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve HLS segments: try static files first (written by ffmpeg to media/live/),
+// then proxy to NMS HTTP server on port 8001 as fallback.
 app.use('/live', express.static(path.join(__dirname, 'media', 'live')));
+app.use('/live', createProxyMiddleware({
+  target: 'http://127.0.0.1:8001',
+  changeOrigin: true,
+  logLevel: 'silent',
+  on: {
+    error: (err, req, res) => {
+      // NMS not ready or stream not live — return 404 quietly
+      if (!res.headersSent) res.status(404).json({ error: 'Stream not live or HLS not ready' });
+    }
+  }
+}));
+
 
 // Middleware that rejects API requests with 503 while the database is still
 // initializing. /api/health is intentionally excluded so load balancers and

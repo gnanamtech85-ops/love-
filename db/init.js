@@ -2,11 +2,11 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const wrapper = require('./sqlite-wrapper');
 
-let db = null;
 let initialized = false;
 
+// Returns null if DB not ready — callers must guard with if (!db) return
 function getDb() {
-  if (!db) throw new Error('Database not initialized. Call initDb() first.');
+  if (!initialized) return null;
   return {
     prepare: wrapper.prepare,
     exec: wrapper.exec
@@ -21,7 +21,6 @@ function yieldToEventLoop() {
 async function initDb() {
   if (initialized) return;
   await wrapper.initSqlite();
-  db = true;
   const database = wrapper;
 
   // Create each table in its own async turn so the event loop is never blocked
@@ -77,22 +76,14 @@ async function initDb() {
       FOREIGN KEY (bond_id) REFERENCES srtla_bonds(id) ON DELETE CASCADE
     );
   `);
-  try { await database.exec(`ALTER TABLE streams ADD COLUMN protocol TEXT DEFAULT 'rtmp'`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE streams ADD COLUMN srt_overhead INTEGER DEFAULT 25`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE streams ADD COLUMN srt_encryption TEXT DEFAULT 'none'`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE streams ADD COLUMN max_bandwidth INTEGER DEFAULT 0`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN throughput REAL DEFAULT 0`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN latency REAL DEFAULT 0`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN packet_loss REAL DEFAULT 0`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN packets_sent INTEGER DEFAULT 0`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN packets_received INTEGER DEFAULT 0`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN jitter REAL DEFAULT 0`); } catch (e) {}
-  try { await database.exec(`ALTER TABLE recordings ADD COLUMN file_path TEXT DEFAULT ''`); } catch (e) {}
+  // Create recordings table first (with file_path column), then apply migration
+  // for any existing DB that may be missing the column.
   await database.exec(`
     CREATE TABLE IF NOT EXISTS recordings (
       id TEXT PRIMARY KEY, stream_id TEXT NOT NULL, filename TEXT NOT NULL,
       duration INTEGER DEFAULT 0, size INTEGER DEFAULT 0, format TEXT DEFAULT 'mp4',
-      status TEXT DEFAULT 'available', created_at TEXT DEFAULT (datetime('now')),
+      status TEXT DEFAULT 'available', file_path TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (stream_id) REFERENCES streams(id) ON DELETE CASCADE
     );
   `);
@@ -116,6 +107,19 @@ async function initDb() {
     );
   `);
 
+  // Schema migrations for existing databases
+  try { await database.exec(`ALTER TABLE streams ADD COLUMN protocol TEXT DEFAULT 'rtmp'`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE streams ADD COLUMN srt_overhead INTEGER DEFAULT 25`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE streams ADD COLUMN srt_encryption TEXT DEFAULT 'none'`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE streams ADD COLUMN max_bandwidth INTEGER DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN throughput REAL DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN latency REAL DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN packet_loss REAL DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN packets_sent INTEGER DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN packets_received INTEGER DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE srtla_interfaces ADD COLUMN jitter REAL DEFAULT 0`); } catch (e) {}
+  try { await database.exec(`ALTER TABLE recordings ADD COLUMN file_path TEXT DEFAULT ''`); } catch (e) {}
+
   await yieldToEventLoop();
 
   const existing = database.prepare('SELECT id FROM users WHERE email = ?').get('demo@streamcast.io');
@@ -136,7 +140,7 @@ async function initDb() {
   const streamKeys = [uuidv4(), uuidv4(), uuidv4()];
   const streamIds = [uuidv4(), uuidv4(), uuidv4()];
   const streams = [
-    { id: streamIds[0], name: 'Gaming Live Stream', desc: 'Daily gaming sessions', key: streamKeys[0], status: 'live', region: 'us-east', rec: 1 },
+    { id: streamIds[0], name: 'Gaming Live Stream', desc: 'Daily gaming sessions', key: streamKeys[0], status: 'offline', region: 'us-east', rec: 1 },
     { id: streamIds[1], name: 'Tech Talk Show', desc: 'Weekly tech discussions', key: streamKeys[1], status: 'offline', region: 'eu-west', rec: 1 },
     { id: streamIds[2], name: 'IRL Adventure Stream', desc: 'Outdoor adventures via SRTLA', key: streamKeys[2], status: 'offline', region: 'ap-southeast', rec: 0 }
   ];
@@ -149,9 +153,9 @@ async function initDb() {
 
   await yieldToEventLoop();
   const insDest = database.prepare(`INSERT INTO destinations (id, stream_id, platform, platform_name, rtmp_url, stream_key, enabled, status, metadata_title, metadata_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-  insDest.run(uuidv4(), streamIds[0], 'youtube', 'YouTube', 'rtmp://a.rtmp.youtube.com/live2', 'xxxx-xxxx', 1, 'connected', 'Gaming Live!', '');
-  insDest.run(uuidv4(), streamIds[0], 'twitch', 'Twitch', 'rtmp://live.twitch.tv/app', 'live_xxxxx', 1, 'connected', 'Gaming Live!', '');
-  insDest.run(uuidv4(), streamIds[0], 'kick', 'Kick', 'rtmp://kick.example.com/app', 'sk_xxxxx', 1, 'connected', 'Gaming Live!', '');
+  insDest.run(uuidv4(), streamIds[0], 'youtube', 'YouTube', 'rtmp://a.rtmp.youtube.com/live2', 'xxxx-xxxx', 1, 'idle', 'Gaming Live!', '');
+  insDest.run(uuidv4(), streamIds[0], 'twitch', 'Twitch', 'rtmp://live.twitch.tv/app', 'live_xxxxx', 1, 'idle', 'Gaming Live!', '');
+  insDest.run(uuidv4(), streamIds[0], 'kick', 'Kick', 'rtmp://kick.example.com/app', 'sk_xxxxx', 1, 'idle', 'Gaming Live!', '');
   insDest.run(uuidv4(), streamIds[1], 'youtube', 'YouTube', 'rtmp://a.rtmp.youtube.com/live2', 'yyyy-yyyy', 1, 'idle', 'Tech Talk', '');
   insDest.run(uuidv4(), streamIds[1], 'linkedin', 'LinkedIn', 'rtmp://rtmp.linkedin.com/live', 'ln_xxxxx', 1, 'idle', 'Tech Talk', '');
   insDest.run(uuidv4(), streamIds[2], 'twitch', 'Twitch', 'rtmp://live.twitch.tv/app', 'live_yyyy', 1, 'idle', 'IRL Adventure', '');
@@ -174,7 +178,6 @@ async function initDb() {
     const viewers = Math.floor(50 + Math.random() * 450);
     const bitrate = Math.floor(3000 + Math.random() * 3000);
     insAnalytics.run(uuidv4(), streamIds[0], 'health_check', viewers, bitrate, 60, parseFloat((bitrate * viewers / 1e6).toFixed(2)), ts);
-    // Yield every 8 rows to avoid blocking during the analytics loop.
     if (i % 8 === 0) await yieldToEventLoop();
   }
 

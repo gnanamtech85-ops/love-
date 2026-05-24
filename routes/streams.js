@@ -244,7 +244,7 @@ router.post('/:id/start', (req, res) => {
     }
 
     // If protocol is SRT, ensure the relay is running
-    if (stream.protocol === 'srt' || stream.protocol === undefined) {
+    if (stream.protocol === 'srt') {
       const existing = srtRelay.getPortForStream(stream.stream_key);
       if (!existing) {
         const port = srtRelay.getNextPort() || 9000;

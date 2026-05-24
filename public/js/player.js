@@ -9,8 +9,8 @@ const streamMap = {};
 
 function openLivePreview(streamId, streamName, streamKey) {
   const stream = streamMap[streamId];
-  const hlsUrl = stream ? stream.hls_url : `/live/${streamKey || streamId}/index.m3u8`;
-  const absHlsUrl = window.location.origin + hlsUrl;
+  const hlsPath = stream ? stream.hls_url : `/live/${streamKey || streamId}/index.m3u8`;
+  const absHlsUrl = window.location.protocol + '//' + window.location.host + hlsPath;
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.style.display = 'flex';
@@ -28,7 +28,7 @@ function openLivePreview(streamId, streamName, streamKey) {
       </div>
       <div class="modal-body">
         <div class="embed-player-preview" id="hls-player-container" style="aspect-ratio:16/9;background:#000;border-radius:var(--radius-md);overflow:hidden;position:relative;">
-          <video id="hls-video" controls style="width:100%;height:100%;object-fit:contain;background:#000;" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225' viewBox='0 0 400 225'%3E%3Crect width='400' height='225' fill='%231a1a35'/%3E%3Ctext x='200' y='115' text-anchor='middle' fill='%236b6b80' font-family='Inter' font-size='18'%3ELive Preview Loading...%3C/text%3E%3C/svg%3E"></video>
+          <video id="hls-video" controls style="width:100%;height:100%;object-fit:contain;background:#000;"></video>
           <div id="preview-health-overlay" style="position:absolute;bottom:50px;left:12px;display:flex;gap:12px;font-size:0.7rem;font-family:var(--font-mono);">
             <span style="background:rgba(0,0,0,0.7);padding:4px 10px;border-radius:6px;color:var(--accent-green);" id="preview-bitrate">— kbps</span>
             <span style="background:rgba(0,0,0,0.7);padding:4px 10px;border-radius:6px;color:var(--accent-blue);" id="preview-fps">— fps</span>
@@ -46,10 +46,10 @@ function openLivePreview(streamId, streamName, streamKey) {
     </div>
   `;
   document.body.appendChild(overlay);
-  const s = stream || streamMap[streamId];
-  initHlsPlayer(streamId, s ? s.stream_key : streamKey);
+  initHlsPlayer(streamId, streamKey);
   startPreviewHealthMonitor(streamId);
 }
+
 
 function closeLivePreview() {
   destroyHlsInstances();
@@ -63,13 +63,31 @@ function initHlsPlayer(streamId, streamKey) {
   const video = document.getElementById('hls-video');
   if (!video) return;
   const stream = streamMap[streamId];
-  const hlsUrl = stream ? stream.hls_url : `/live/${streamKey || streamId}/index.m3u8`;
+  const hlsPath = stream ? stream.hls_url : `/live/${streamKey || streamId}/index.m3u8`;
+  // Use absolute URL with hostname so it resolves correctly
+  const hlsUrl = window.location.protocol + '//' + window.location.host + hlsPath;
+
   if (Hls.isSupported()) {
-    const hls = new Hls();
+    const hls = new Hls({
+      liveSyncDurationCount: 3,
+      liveMaxLatencyDurationCount: 6,
+      lowLatencyMode: false,
+      xhrSetup: function(xhr) { xhr.withCredentials = false; }
+    });
     hls.loadSource(hlsUrl);
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       video.play().catch(() => {});
+    });
+    hls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        console.log('[HLS] Fatal error, trying to recover...');
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad();
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+        }
+      }
     });
     hlsInstances.push(hls);
   } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -79,6 +97,7 @@ function initHlsPlayer(streamId, streamKey) {
     });
   }
 }
+
 
 function startPreviewHealthMonitor(streamId) {
   const socket = io('/live-preview');
