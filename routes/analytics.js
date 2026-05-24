@@ -45,9 +45,9 @@ router.get('/:streamId', (req, res) => {
     const events = db.prepare(`
       SELECT viewer_count, bitrate, fps, bandwidth, timestamp
       FROM analytics_events
-      WHERE stream_id = ? AND timestamp >= datetime('now', '-${hours} hours')
+      WHERE stream_id = ? AND timestamp >= datetime('now', '-' || ? || ' hours')
       ORDER BY timestamp ASC
-    `).all(req.params.streamId);
+    `).all(req.params.streamId, hours);
     res.json({ streamId: req.params.streamId, range: hours + 'h', events });
   } catch (err) {
     console.error('[Analytics] Get error:', err.message);

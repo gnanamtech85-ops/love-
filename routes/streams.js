@@ -74,9 +74,9 @@ router.post('/', (req, res) => {
     db.prepare(`
       INSERT INTO streams (id, user_id, name, description, stream_key, rtmp_url, srt_url, srt_latency, status, region, recording_enabled)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'offline', ?, ?)
-    `).run(
+    `    ).run(
       id, req.user.id, name, description || '', streamKey, rtmpUrl, srtUrl,
-      latency, region || 'us-east', recording_enabled ? 1 : 0
+      srt_latency || 120, region || 'us-east', recording_enabled ? 1 : 0
     );
 
     const stream = db.prepare('SELECT * FROM streams WHERE id = ?').get(id);
