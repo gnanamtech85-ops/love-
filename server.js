@@ -9,6 +9,7 @@ const { getDb, initDb, isDbReady } = require('./db/init');
 const streamManager = require('./engine/stream-manager');
 const srtlaManager = require('./engine/srtla-manager');
 const srtRelay = require('./engine/srt-relay');
+const restreamManager = require('./engine/restream-manager');
 
 const authRoutes = require('./routes/auth');
 const streamRoutes = require('./routes/streams');
@@ -29,6 +30,7 @@ const io = new Server(server, {
 app.set('io', io);
 streamManager.setIo(io);
 srtlaManager.setIo(io);
+restreamManager.setIo(io);
 
 app.use(cors());
 app.use(express.json());

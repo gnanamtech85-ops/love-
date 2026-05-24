@@ -8,6 +8,9 @@ function destroyHlsInstances() {
 const streamMap = {};
 
 function openLivePreview(streamId, streamName) {
+  const stream = streamMap[streamId];
+  const hlsUrl = stream ? stream.hls_url : `/live/${streamId}/index.m3u8`;
+  const absHlsUrl = window.location.origin + hlsUrl;
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.style.display = 'flex';
@@ -35,7 +38,7 @@ function openLivePreview(streamId, streamName) {
         <div style="margin-top:16px;display:flex;gap:12px;align-items:center;">
           <span style="font-size:0.8rem;color:var(--text-muted);">HLS URL:</span>
           <div class="stream-key-box" style="flex:1;">
-            <span class="key-value" id="preview-hls-url">${window.location.origin}/live/${streamId}/index.m3u8</span>
+            <span class="key-value" id="preview-hls-url">${absHlsUrl}</span>
             <button class="key-copy" onclick="copyText('preview-hls-url')">📋</button>
           </div>
         </div>

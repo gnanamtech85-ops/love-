@@ -116,6 +116,7 @@ async function startStream(id) {
 }
 
 function showIngestInfo(s) {
+  const protocol = s.protocol || 'rtmp';
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.style.display = 'flex';
@@ -123,19 +124,19 @@ function showIngestInfo(s) {
   overlay.innerHTML = `
     <div class="modal" style="max-width:520px;">
       <div class="modal-header">
-        <h2>🎬 Connect OBS to Stream</h2>
+        <h2>🎬 Connect to Stream</h2>
         <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div class="modal-body">
         <div class="info-box-success" style="margin-bottom:16px;padding:12px;background:rgba(16,185,129,0.08);border-radius:var(--radius-sm);border-left:3px solid var(--accent-green);font-size:0.85rem;">
-          Point your encoder (OBS, vMix, Wirecast) to the RTMP URL below. The stream will auto-detect when you start broadcasting.
+          Point your encoder to the ${protocol.toUpperCase()} URL below. The stream will auto-detect when you start broadcasting.
         </div>
         <div class="form-group">
-          <label class="form-label">RTMP URL</label>
+          <label class="form-label">${protocol.toUpperCase()} URL</label>
           <div class="stream-key-box">
-            <span class="key-value" id="ingest-rtmp-url">${s.ingest_url || s.rtmp_url}</span>
+            <span class="key-value" id="ingest-rtmp-url">${protocol === 'srt' ? s.srt_url : (s.ingest_url || s.rtmp_url)}</span>
             <button class="key-copy" onclick="copyText('ingest-rtmp-url')">📋</button>
           </div>
         </div>
@@ -155,11 +156,19 @@ function showIngestInfo(s) {
         </div>
         <div style="margin-top:16px;padding:16px;background:rgba(45,104,255,0.06);border-radius:var(--radius-sm);font-size:0.85rem;color:var(--text-secondary);">
           <strong style="color:var(--text-primary);">How to set up in OBS:</strong><br>
+          ${protocol === 'srt' ? `
+          1. Open OBS → Settings → Stream<br>
+          2. Service: <strong>Custom SRT</strong><br>
+          3. Server URL: <strong>${s.srt_url}</strong><br>
+          4. Stream ID: paste the <strong>Stream Key</strong> above<br>
+          5. Click OK → Start Streaming<br>
+          <hr style="margin:8px 0;border-color:var(--border-color);">
+          <em>Alternatively paste the full URL as the server in newer OBS versions.</em>` : `
           1. Open OBS → Settings → Stream<br>
           2. Service: <strong>Custom...</strong><br>
           3. Server: paste the <strong>RTMP URL</strong> above<br>
           4. Stream Key: paste the <strong>Stream Key</strong> above<br>
-          5. Click OK → Start Streaming
+          5. Click OK → Start Streaming`}
         </div>
       </div>
       <div class="modal-footer" style="padding:16px 24px;display:flex;justify-content:flex-end;gap:8px;">

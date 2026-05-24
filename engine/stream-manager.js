@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/init');
+const restreamManager = require('./restream-manager');
 
 let nms = null;
 let ioInstance = null;
@@ -21,6 +22,7 @@ function startNms() {
     fs.mkdirSync(HLS_DIR, { recursive: true });
   }
 
+  const mediaroot = path.join(__dirname, '..', 'media');
   const config = {
     rtmp: {
       port: 1935,
@@ -31,8 +33,12 @@ function startNms() {
     },
     http: {
       port: 8001,
-      mediaroot: path.join(__dirname, '..', 'media'),
+      mediaroot,
       allow_origin: '*'
+    },
+    hls: {
+      mediaroot,
+      path: '/live'
     },
     trans: {
       ffmpeg: '',
@@ -68,6 +74,8 @@ function startNms() {
 
       activeStreams.set(streamKey, { streamId: stream.id, startTime: Date.now() });
 
+      restreamManager.startRestreamsForStream(stream.id, streamKey);
+
       if (ioInstance) {
         ioInstance.of('/stream-monitor').emit('stream:started', {
           streamId: stream.id,
@@ -85,6 +93,8 @@ function startNms() {
     const streamKey = session.streamPath.replace('/live/', '');
     console.log(`[NMS] Stream stopped: ${streamKey}`);
 
+    const entry = activeStreams.get(streamKey);
+    if (entry) restreamManager.stopRestreamsForStream(entry.streamId);
     activeStreams.delete(streamKey);
 
     const db = getDb();

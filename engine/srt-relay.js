@@ -53,6 +53,11 @@ function startRelayForStream(streamKey, port) {
   proc.on('exit', (code, sig) => {
     console.log(`[SRT:${port}] exited code=${code} signal=${sig}`);
     relays.delete(streamKey);
+    usedPorts.delete(port);
+    if (code !== 0 && sig !== 'SIGTERM') {
+      console.log(`[SRT:${port}] Auto-restarting in 2s...`);
+      setTimeout(() => startRelayForStream(streamKey, port), 2000);
+    }
   });
 
   relays.set(streamKey, { proc, port });
