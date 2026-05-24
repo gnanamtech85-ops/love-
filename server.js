@@ -3,7 +3,6 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const { getDb, initDb, isDbReady } = require('./db/init');
 const streamManager = require('./engine/stream-manager');
@@ -186,14 +185,6 @@ livePreviewNs.on('connection', (socket) => {
     if (previewInterval) { clearInterval(previewInterval); previewInterval = null; }
   });
 });
-
-app.use('/live', createProxyMiddleware({
-  target: 'http://localhost:8001',
-  changeOrigin: true,
-  onError: (err, req, res) => {
-    res.status(502).json({ error: 'HLS stream unavailable' });
-  }
-}));
 
 app.use((req, res) => {
   res.status(404).json({

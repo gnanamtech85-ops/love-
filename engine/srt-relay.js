@@ -78,12 +78,14 @@ function startAll() {
   try {
     const db = getDb();
     if (!db) return;
-    const streams = db.prepare('SELECT id, stream_key FROM streams WHERE status != ?').all('archived');
-    streams.forEach((s, i) => {
-      startRelayForStream(s.stream_key, SRT_BASE_PORT + i);
+    const streams = db.prepare('SELECT stream_key, protocol FROM streams WHERE protocol = ? AND status != ?').all('srt', 'archived');
+    streams.forEach((s) => {
+      if (!relays.has(s.stream_key)) {
+        startRelayForStream(s.stream_key, getNextPort());
+      }
     });
     if (streams.length === 0) {
-      console.log('[SRT] No streams found to relay; SRT port 9000 not listening.');
+      console.log('[SRT] No SRT streams found; SRT relay deferred.');
     }
   } catch (e) {
     console.log('[SRT] No database yet; SRT relay deferred.');

@@ -292,4 +292,96 @@ function openCreateStreamModal() {
   openModal('create-stream-modal');
 }
 
+let streamMonitorSocket = null;
+
+function connectStreamMonitor() {
+  if (streamMonitorSocket) streamMonitorSocket.close();
+  streamMonitorSocket = io('/stream-monitor');
+  streamMonitorSocket.on('stream:started', () => { refreshStreams(); });
+  streamMonitorSocket.on('stream:stopped', () => { refreshStreams(); });
+}
+
+async function refreshStreams() {
+  const area = document.getElementById('content-area');
+  const currentPage = document.querySelector('.nav-item.active')?.dataset?.page;
+  if (currentPage === 'streams' || currentPage === 'overview') {
+    await loadStreams(area);
+  }
+  const badge = document.getElementById('stream-count');
+  try {
+    const data = await api('/streams');
+    if (badge && data.streams) badge.textContent = data.streams.length;
+  } catch (e) {}
+}
+
+async function loadOverview(area) {
+  try {
+    const data = await api('/streams');
+    const streams = data.streams || [];
+    const liveCount = streams.filter(s => s.status === 'live').length;
+    const totalDests = streams.reduce((sum, s) => sum + (s.destination_count || 0), 0);
+    const rtmpStreams = streams.filter(s => (s.protocol || 'rtmp') === 'rtmp');
+    const srtStreams = streams.filter(s => s.protocol === 'srt');
+    area.innerHTML = `
+      <div class="page-header"><h1>Overview</h1></div>
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-card-header">
+            <span class="stat-card-title">Total Streams</span>
+            <div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+          </div>
+          <div class="stat-card-value">${streams.length}</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);">${liveCount} live, ${streams.length - liveCount} offline</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-card-header">
+            <span class="stat-card-title">Live Now</span>
+            <div class="stat-card-icon green"><span class="dot" style="width:12px;height:12px;background:var(--accent-green);"></span></div>
+          </div>
+          <div class="stat-card-value">${liveCount}</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);">${rtmpStreams.length} RTMP / ${srtStreams.length} SRT</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-card-header">
+            <span class="stat-card-title">Destinations</span>
+            <div class="stat-card-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          </div>
+          <div class="stat-card-value">${totalDests}</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);">Across all streams</div>
+        </div>
+      </div>
+      <div class="srt-config-section" style="margin-top:24px;">
+        <h4 style="margin-bottom:16px;">Quick Start</h4>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
+          To go live, create a stream, get your RTMP/SRT URL and stream key, then configure OBS to push to your server.
+          Your video will be available via HLS once streaming starts.
+        </p>
+        <p style="font-size:0.85rem;color:var(--text-secondary);">
+          <strong>Server:</strong> ${window.location.hostname}:1935<br>
+          <strong>HLS:</strong> http://${window.location.hostname}:3000/live/STREAM_KEY/index.m3u8
+        </p>
+      </div>
+      <div class="srt-config-section" style="margin-top:16px;">
+        <h4 style="margin-bottom:16px;">Live Streams</h4>
+        <div id="overview-stream-list">
+          ${liveCount > 0 ? streams.filter(s => s.status === 'live').map(s => `
+            <div class="destination-row">
+              <div class="destination-info">
+                <div class="destination-name">${s.name}</div>
+                <div class="destination-url">${s.stream_key ? s.stream_key.substring(0, 16) + '...' : ''}</div>
+              </div>
+              <div class="destination-status live"></div>
+              <button class="btn btn-sm btn-ghost" onclick="openLivePreview('${s.id}','${s.name.replace(/'/g,"\\'")}','${s.stream_key}')">▶ Preview</button>
+            </div>
+          `).join('') : '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">No live streams. Create a stream and start streaming from OBS.</div>'}
+        </div>
+      </div>`;
+  } catch (err) {
+    area.innerHTML = `<div class="empty-state"><p style="color:var(--accent-red)">${err.message}</p></div>`;
+  }
+  connectStreamMonitor();
+}
+
 registerPageHandler('streams', loadStreams);
+registerPageHandler('overview', loadOverview);
+connectStreamMonitor();

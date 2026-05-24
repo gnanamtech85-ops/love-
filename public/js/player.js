@@ -7,9 +7,9 @@ function destroyHlsInstances() {
 
 const streamMap = {};
 
-function openLivePreview(streamId, streamName) {
+function openLivePreview(streamId, streamName, streamKey) {
   const stream = streamMap[streamId];
-  const hlsUrl = stream ? stream.hls_url : `/live/${streamId}/index.m3u8`;
+  const hlsUrl = stream ? stream.hls_url : `/live/${streamKey || streamId}/index.m3u8`;
   const absHlsUrl = window.location.origin + hlsUrl;
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -46,7 +46,8 @@ function openLivePreview(streamId, streamName) {
     </div>
   `;
   document.body.appendChild(overlay);
-  initHlsPlayer(streamId);
+  const s = stream || streamMap[streamId];
+  initHlsPlayer(streamId, s ? s.stream_key : streamKey);
   startPreviewHealthMonitor(streamId);
 }
 
@@ -58,11 +59,11 @@ function closeLivePreview() {
   if (monitor) clearInterval(monitor._interval);
 }
 
-function initHlsPlayer(streamId) {
+function initHlsPlayer(streamId, streamKey) {
   const video = document.getElementById('hls-video');
   if (!video) return;
   const stream = streamMap[streamId];
-  const hlsUrl = stream ? stream.hls_url : `/live/${streamId}/index.m3u8`;
+  const hlsUrl = stream ? stream.hls_url : `/live/${streamKey || streamId}/index.m3u8`;
   if (Hls.isSupported()) {
     const hls = new Hls();
     hls.loadSource(hlsUrl);
